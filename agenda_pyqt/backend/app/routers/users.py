@@ -20,8 +20,16 @@ router = APIRouter(
 async def check_first_run(db: Session = Depends(get_db)):
     """Verifica si es la primera ejecución (no hay usuarios)"""
     try:
-        user_count = db.query(models.User).count()
-        return {"first_run": user_count == 0}
+        # Verificar si existe configuración del sistema
+        config = db.query(models.SystemConfig).first()
+        if not config:
+            # Si no existe configuración, crearla
+            config = models.SystemConfig(first_run_completed=False)
+            db.add(config)
+            db.commit()
+            return {"first_run": True}
+        
+        return {"first_run": not config.first_run_completed}
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -135,66 +143,43 @@ async def delete_user(
     return {"message": "Usuario eliminado"}
 
 @router.post("/setup-admin", response_model=schemas.User)
-async def setup_admin(
-    user: schemas.UserCreate,
-    db: Session = Depends(get_db)
-):
+async def setup_admin(user: schemas.UserCreate, db: Session = Depends(get_db)):
     """Crea el usuario administrador inicial (solo funciona si no hay usuarios)"""
     try:
-        # Verificar si ya hay usuarios
-        user_count = db.query(models.User).count()
-        if user_count > 0:
+        # Verificar si ya existe un usuario administrador
+        if db.query(models.User).filter(models.User.role == "admin").first():
             raise HTTPException(
                 status_code=400,
-                detail="La configuración inicial ya fue realizada"
+                detail="Ya existe un usuario administrador"
             )
         
-        # Validar que el usuario tenga todos los campos requeridos
-        if not user.name or not user.email or not user.password:
-            raise HTTPException(
-                status_code=400,
-                detail="Faltan campos requeridos (nombre, email o contraseña)"
-            )
-        
-        # Verificar si el email ya existe (por si acaso)
-        existing_user = db.query(models.User).filter(models.User.email == user.email).first()
-        if existing_user:
-            raise HTTPException(
-                status_code=400,
-                detail="El email ya está registrado"
-            )
-        
-        # Crear usuario admin
+        # Crear el usuario administrador
         hashed_password = get_password_hash(user.password)
         db_user = models.User(
-            name=user.name,
             email=user.email,
+            name=user.name,
             password=hashed_password,
             role="admin",
-            comision_porcentaje=0.0,
             is_active=True
         )
+        db.add(db_user)
         
-        try:
-            db.add(db_user)
-            db.commit()
-            db.refresh(db_user)
-            return db_user
-        except Exception as e:
-            db.rollback()
-            print(f"Error al guardar en la base de datos: {str(e)}")
-            raise HTTPException(
-                status_code=500,
-                detail=f"Error al guardar en la base de datos: {str(e)}"
-            )
+        # Marcar la configuración como completada
+        config = db.query(models.SystemConfig).first()
+        if not config:
+            config = models.SystemConfig()
+            db.add(config)
+        config.first_run_completed = True
         
-    except HTTPException as he:
-        raise he
+        db.commit()
+        db.refresh(db_user)
+        return db_user
+    
+    except HTTPException:
+        raise
     except Exception as e:
-        import traceback
-        error_details = traceback.format_exc()
-        print(f"Error al crear admin: {str(e)}\n{error_details}")
+        db.rollback()
         raise HTTPException(
             status_code=500,
-            detail=f"Error al crear el usuario administrador: {str(e)}"
+            detail=f"Error al crear usuario administrador: {str(e)}"
         )

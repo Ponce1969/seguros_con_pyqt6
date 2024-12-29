@@ -546,8 +546,7 @@ class MovementDialog(QDialog):
         self.fecha_movimiento_input = QDateEdit()
         self.fecha_movimiento_input.setCalendarPopup(True)
         self.corredor_input = QLineEdit()
-        self.tipo_seguro_input = QComboBox()
-        self.tipo_seguro_input.addItems(["Seguro de Vida", "Seguro de Accidentes", "Seguro de Salud"])
+        self.tipo_seguro_input = QLineEdit()  # Cambiado a QLineEdit para permitir entrada libre
         self.carpeta_input = QLineEdit()
         self.poliza_input = QLineEdit()
         self.endoso_input = QLineEdit()
@@ -593,7 +592,7 @@ class MovementDialog(QDialog):
                 self.cliente_input.setText(movement["cliente"])
                 self.fecha_movimiento_input.setDate(QDate.fromString(movement["fecha_movimiento"], Qt.DateFormat.ISODate))
                 self.corredor_input.setText(movement["corredor"])
-                self.tipo_seguro_input.setCurrentText(movement["tipo_seguro"])
+                self.tipo_seguro_input.setText(movement["tipo_seguro"])
                 self.carpeta_input.setText(movement["carpeta"])
                 self.poliza_input.setText(movement["poliza"])
                 self.endoso_input.setText(movement["endoso"])
@@ -615,6 +614,7 @@ class MovementDialog(QDialog):
             if not all([
                 self.cliente_input.text().strip(),
                 self.corredor_input.text().strip(),
+                self.tipo_seguro_input.text().strip(),  # Validar el tipo de seguro
                 self.carpeta_input.text().strip(),
                 self.poliza_input.text().strip(),
                 self.endoso_input.text().strip(),
@@ -627,7 +627,7 @@ class MovementDialog(QDialog):
                 "cliente": self.cliente_input.text().strip(),
                 "fecha_movimiento": self.fecha_movimiento_input.date().toString(Qt.DateFormat.ISODate),
                 "corredor": self.corredor_input.text().strip(),
-                "tipo_seguro": self.tipo_seguro_input.currentText(),
+                "tipo_seguro": self.tipo_seguro_input.text().strip(),  # Usar el texto ingresado
                 "carpeta": self.carpeta_input.text().strip(),
                 "poliza": self.poliza_input.text().strip(),
                 "endoso": self.endoso_input.text().strip(),

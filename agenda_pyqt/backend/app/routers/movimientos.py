@@ -6,6 +6,7 @@ import logging
 
 from ..database import SessionLocal
 from .. import models, schemas
+from ..security import get_current_active_user
 
 # Configurar logging
 logger = logging.getLogger(__name__)
@@ -72,7 +73,11 @@ def update_movimiento(movimiento_id: int, movimiento: schemas.MovimientoVigencia
     return db_movimiento
 
 @router.delete("/{movimiento_id}")
-def delete_movimiento(movimiento_id: int, db: Session = Depends(get_db)):
+def delete_movimiento(
+    movimiento_id: int, 
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user)
+):
     db_movimiento = db.query(models.MovimientoVigencia).filter(models.MovimientoVigencia.id == movimiento_id).first()
     if db_movimiento is None:
         raise HTTPException(status_code=404, detail="Movimiento no encontrado")

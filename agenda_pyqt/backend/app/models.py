@@ -87,6 +87,13 @@ class MovimientoVigencia(Base):
     corredor_rel = relationship("Corredor", back_populates="movimientos")
     tipo_seguro_rel = relationship("TipoSeguro", back_populates="movimientos")
 
+class SystemConfig(Base):
+    __tablename__ = "system_config"
+
+    id = Column(Integer, primary_key=True)
+    first_run_completed = Column(Boolean, default=False)
+    setup_date = Column(DateTime, default=datetime.utcnow)
+
 class User(Base):
     __tablename__ = "users"
 
