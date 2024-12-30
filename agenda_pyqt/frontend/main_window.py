@@ -69,8 +69,8 @@ class MainWindow(QMainWindow):
         self.clients_table = QTableWidget()
         self.clients_table.setColumnCount(10)
         self.clients_table.setHorizontalHeaderLabels([
-            "ID", "Nombres", "Apellidos", "Documento",
-            "Teléfono", "Móvil", "Email", "Dirección",
+            "ID", "Nombres", "Apellidos", "Número de Documento",
+            "Teléfonos", "Móvil", "Email", "Dirección",
             "Localidad", "Acciones"
         ])
         
@@ -165,10 +165,10 @@ class MainWindow(QMainWindow):
                     self.clients_table.setItem(row, 0, QTableWidgetItem(str(client["id"])))
                     self.clients_table.setItem(row, 1, QTableWidgetItem(client["nombres"]))
                     self.clients_table.setItem(row, 2, QTableWidgetItem(client["apellidos"]))
-                    self.clients_table.setItem(row, 3, QTableWidgetItem(client["documento"]))
-                    self.clients_table.setItem(row, 4, QTableWidgetItem(client["telefono"]))
+                    self.clients_table.setItem(row, 3, QTableWidgetItem(client["documentos"]))
+                    self.clients_table.setItem(row, 4, QTableWidgetItem(client["telefonos"]))
                     self.clients_table.setItem(row, 5, QTableWidgetItem(client["movil"]))
-                    self.clients_table.setItem(row, 6, QTableWidgetItem(client["email"]))
+                    self.clients_table.setItem(row, 6, QTableWidgetItem(client["mail"]))
                     self.clients_table.setItem(row, 7, QTableWidgetItem(client["direccion"]))
                     self.clients_table.setItem(row, 8, QTableWidgetItem(client["localidad"]))
                     
@@ -240,17 +240,17 @@ class MainWindow(QMainWindow):
                     self.movements_table.insertRow(row)
                     
                     # Añadir datos del movimiento
-                    self.movements_table.setItem(row, 0, QTableWidgetItem(str(movement["id"])))
-                    self.movements_table.setItem(row, 1, QTableWidgetItem(movement["cliente"]))
-                    self.movements_table.setItem(row, 2, QTableWidgetItem(movement["fecha_movimiento"]))
-                    self.movements_table.setItem(row, 3, QTableWidgetItem(movement["corredor"]))
-                    self.movements_table.setItem(row, 4, QTableWidgetItem(movement["tipo_seguro"]))
-                    self.movements_table.setItem(row, 5, QTableWidgetItem(movement["carpeta"]))
-                    self.movements_table.setItem(row, 6, QTableWidgetItem(movement["poliza"]))
-                    self.movements_table.setItem(row, 7, QTableWidgetItem(movement["endoso"]))
-                    self.movements_table.setItem(row, 8, QTableWidgetItem(movement["vigencia_desde"]))
-                    self.movements_table.setItem(row, 9, QTableWidgetItem(movement["vigencia_hasta"]))
-                    self.movements_table.setItem(row, 10, QTableWidgetItem(movement["premio"]))
+                    self.movements_table.setItem(row, 0, QTableWidgetItem(str(movement["Id_movimiento"])))
+                    self.movements_table.setItem(row, 1, QTableWidgetItem(str(movement["Cliente"])))
+                    self.movements_table.setItem(row, 2, QTableWidgetItem(movement["FechaMov"]))
+                    self.movements_table.setItem(row, 3, QTableWidgetItem(str(movement["Corredor"])))
+                    self.movements_table.setItem(row, 4, QTableWidgetItem(str(movement["Tipo_seguro"])))
+                    self.movements_table.setItem(row, 5, QTableWidgetItem(movement["Carpeta"]))
+                    self.movements_table.setItem(row, 6, QTableWidgetItem(movement["Poliza"] or ""))
+                    self.movements_table.setItem(row, 7, QTableWidgetItem(movement["Endoso"] or ""))
+                    self.movements_table.setItem(row, 8, QTableWidgetItem(movement["Vto_Desde"]))
+                    self.movements_table.setItem(row, 9, QTableWidgetItem(movement["Vto_Hasta"]))
+                    self.movements_table.setItem(row, 10, QTableWidgetItem(str(movement["Premio"] or "")))
                     
                     # Botones de acción
                     action_widget = QWidget()
@@ -258,11 +258,11 @@ class MainWindow(QMainWindow):
                     action_layout.setContentsMargins(0, 0, 0, 0)
                     
                     edit_button = QPushButton("Editar")
-                    edit_button.clicked.connect(lambda checked, mid=movement["id"]: self.show_edit_movement_dialog(mid))
+                    edit_button.clicked.connect(lambda checked, mid=movement["Id_movimiento"]: self.show_edit_movement_dialog(mid))
                     action_layout.addWidget(edit_button)
                     
                     delete_button = QPushButton("Eliminar")
-                    delete_button.clicked.connect(lambda checked, mid=movement["id"]: self.delete_movement(mid))
+                    delete_button.clicked.connect(lambda checked, mid=movement["Id_movimiento"]: self.delete_movement(mid))
                     action_layout.addWidget(delete_button)
                     
                     self.movements_table.setCellWidget(row, 11, action_widget)
@@ -439,13 +439,13 @@ class ClientDialog(QDialog):
                 self.nombres_input.setText(client["nombres"])
                 self.apellidos_input.setText(client["apellidos"])
                 self.tipo_documento_input.setCurrentText(client["tipo_documento"])
-                self.documentos_input.setText(client["documento"])
+                self.documentos_input.setText(client["documentos"])
                 self.fecha_nacimiento_input.setDate(QDate.fromString(client["fecha_nacimiento"], Qt.DateFormat.ISODate))
                 self.direccion_input.setText(client["direccion"])
                 self.localidad_input.setText(client["localidad"] or "")
                 self.telefonos_input.setText(client["telefonos"])
                 self.movil_input.setText(client["movil"])
-                self.mail_input.setText(client["email"])
+                self.mail_input.setText(client["mail"])
                 self.observaciones_input.setPlainText(client["observaciones"] or "")
             else:
                 QMessageBox.warning(self, "Error", "No se pudo cargar los datos del cliente")
@@ -470,17 +470,14 @@ class ClientDialog(QDialog):
                 "nombres": self.nombres_input.text().strip(),
                 "apellidos": self.apellidos_input.text().strip(),
                 "tipo_documento": self.tipo_documento_input.currentText() if self.tipo_documento_input.currentText() != "" else None,
-                "documento": self.documentos_input.text().strip(),
+                "documentos": self.documentos_input.text().strip(),
                 "fecha_nacimiento": self.fecha_nacimiento_input.date().toString(Qt.DateFormat.ISODate) if not self.fecha_nacimiento_input.date().isNull() else None,
                 "direccion": self.direccion_input.text().strip(),
                 "localidad": self.localidad_input.text().strip() or None,
                 "telefonos": self.telefonos_input.text().strip(),
                 "movil": self.movil_input.text().strip(),
-                "email": self.mail_input.text().strip(),
-                "observaciones": self.observaciones_input.toPlainText().strip() or None,
-                "usuario_id": 1,  # ID del usuario logueado
-                "creado_por_id": 1,  # ID del usuario logueado
-                "modificado_por_id": 1  # ID del usuario logueado
+                "mail": self.mail_input.text().strip(),
+                "observaciones": self.observaciones_input.toPlainText().strip() or None
             }
             
             if self.client_id:
@@ -542,31 +539,41 @@ class MovementDialog(QDialog):
         layout = QFormLayout(self)
         
         # Campos del formulario
-        self.cliente_input = QLineEdit()
-        self.fecha_movimiento_input = QDateEdit()
-        self.fecha_movimiento_input.setCalendarPopup(True)
-        self.corredor_input = QLineEdit()
-        self.tipo_seguro_input = QLineEdit()  # Cambiado a QLineEdit para permitir entrada libre
-        self.carpeta_input = QLineEdit()
-        self.poliza_input = QLineEdit()
-        self.endoso_input = QLineEdit()
-        self.vigencia_desde_input = QDateEdit()
-        self.vigencia_desde_input.setCalendarPopup(True)
-        self.vigencia_hasta_input = QDateEdit()
-        self.vigencia_hasta_input.setCalendarPopup(True)
-        self.premio_input = QLineEdit()
+        self.Cliente_input = QLineEdit()
+        self.FechaMov_input = QDateEdit()
+        self.FechaMov_input.setCalendarPopup(True)
+        self.FechaMov_input.setDate(QDate.currentDate())
+        self.Corredor_input = QLineEdit()
+        self.Tipo_seguro_input = QLineEdit()
+        self.Carpeta_input = QLineEdit()
+        self.Poliza_input = QLineEdit()
+        self.Endoso_input = QLineEdit()
+        self.Vto_Desde_input = QDateEdit()
+        self.Vto_Desde_input.setCalendarPopup(True)
+        self.Vto_Desde_input.setDate(QDate.currentDate())
+        self.Vto_Hasta_input = QDateEdit()
+        self.Vto_Hasta_input.setCalendarPopup(True)
+        self.Vto_Hasta_input.setDate(QDate.currentDate())
+        self.Moneda_input = QComboBox()
+        self.Moneda_input.addItems(["$", "U$S"])
+        self.Premio_input = QLineEdit()
+        self.Cuotas_input = QLineEdit()
+        self.Observaciones_input = QTextEdit()
         
         # Agregar campos al layout
-        layout.addRow("Cliente:", self.cliente_input)
-        layout.addRow("Fecha de Movimiento:", self.fecha_movimiento_input)
-        layout.addRow("Corredor:", self.corredor_input)
-        layout.addRow("Tipo de Seguro:", self.tipo_seguro_input)
-        layout.addRow("Carpeta:", self.carpeta_input)
-        layout.addRow("Póliza:", self.poliza_input)
-        layout.addRow("Endoso:", self.endoso_input)
-        layout.addRow("Vigencia Desde:", self.vigencia_desde_input)
-        layout.addRow("Vigencia Hasta:", self.vigencia_hasta_input)
-        layout.addRow("Premio:", self.premio_input)
+        layout.addRow("Cliente:", self.Cliente_input)
+        layout.addRow("Fecha de Movimiento:", self.FechaMov_input)
+        layout.addRow("Corredor:", self.Corredor_input)
+        layout.addRow("Tipo de Seguro:", self.Tipo_seguro_input)
+        layout.addRow("Carpeta:", self.Carpeta_input)
+        layout.addRow("Póliza:", self.Poliza_input)
+        layout.addRow("Endoso:", self.Endoso_input)
+        layout.addRow("Vigencia Desde:", self.Vto_Desde_input)
+        layout.addRow("Vigencia Hasta:", self.Vto_Hasta_input)
+        layout.addRow("Moneda:", self.Moneda_input)
+        layout.addRow("Premio:", self.Premio_input)
+        layout.addRow("Cuotas:", self.Cuotas_input)
+        layout.addRow("Observaciones:", self.Observaciones_input)
         
         # Botones
         button_box = QHBoxLayout()
@@ -589,16 +596,19 @@ class MovementDialog(QDialog):
             
             if response.status_code == 200:
                 movement = response.json()
-                self.cliente_input.setText(movement["cliente"])
-                self.fecha_movimiento_input.setDate(QDate.fromString(movement["fecha_movimiento"], Qt.DateFormat.ISODate))
-                self.corredor_input.setText(movement["corredor"])
-                self.tipo_seguro_input.setText(movement["tipo_seguro"])
-                self.carpeta_input.setText(movement["carpeta"])
-                self.poliza_input.setText(movement["poliza"])
-                self.endoso_input.setText(movement["endoso"])
-                self.vigencia_desde_input.setDate(QDate.fromString(movement["vigencia_desde"], Qt.DateFormat.ISODate))
-                self.vigencia_hasta_input.setDate(QDate.fromString(movement["vigencia_hasta"], Qt.DateFormat.ISODate))
-                self.premio_input.setText(movement["premio"])
+                self.Cliente_input.setText(str(movement["Cliente"]))
+                self.FechaMov_input.setDate(QDate.fromString(movement["FechaMov"], Qt.DateFormat.ISODate))
+                self.Corredor_input.setText(str(movement["Corredor"]))
+                self.Tipo_seguro_input.setText(str(movement["Tipo_seguro"]))
+                self.Carpeta_input.setText(movement["Carpeta"])
+                self.Poliza_input.setText(movement["Poliza"] or "")
+                self.Endoso_input.setText(movement["Endoso"] or "")
+                self.Vto_Desde_input.setDate(QDate.fromString(movement["Vto_Desde"], Qt.DateFormat.ISODate))
+                self.Vto_Hasta_input.setDate(QDate.fromString(movement["Vto_Hasta"], Qt.DateFormat.ISODate))
+                self.Moneda_input.setCurrentText(movement["Moneda"])
+                self.Premio_input.setText(str(movement["Premio"] or ""))
+                self.Cuotas_input.setText(str(movement["Cuotas"] or ""))
+                self.Observaciones_input.setPlainText(movement["Observaciones"] or "")
             else:
                 QMessageBox.warning(self, "Error", "No se pudo cargar los datos del movimiento")
                 self.reject()
@@ -612,31 +622,45 @@ class MovementDialog(QDialog):
         try:
             # Validar campos requeridos
             if not all([
-                self.cliente_input.text().strip(),
-                self.corredor_input.text().strip(),
-                self.tipo_seguro_input.text().strip(),  # Validar el tipo de seguro
-                self.carpeta_input.text().strip(),
-                self.poliza_input.text().strip(),
-                self.endoso_input.text().strip(),
-                self.premio_input.text().strip()
+                self.Cliente_input.text().strip(),
+                self.Corredor_input.text().strip(),
+                self.Tipo_seguro_input.text().strip(),
+                self.Carpeta_input.text().strip()
             ]):
-                QMessageBox.warning(self, "Error", "Por favor complete todos los campos obligatorios")
+                QMessageBox.warning(self, "Error", "Por favor complete los campos obligatorios: Cliente, Corredor, Tipo de Seguro y Carpeta")
                 return
 
+            # Convertir premio y cuotas a números si no están vacíos
+            premio = None
+            if self.Premio_input.text().strip():
+                try:
+                    premio = float(self.Premio_input.text().strip())
+                except ValueError:
+                    QMessageBox.warning(self, "Error", "El premio debe ser un número válido")
+                    return
+
+            cuotas = None
+            if self.Cuotas_input.text().strip():
+                try:
+                    cuotas = int(self.Cuotas_input.text().strip())
+                except ValueError:
+                    QMessageBox.warning(self, "Error", "El número de cuotas debe ser un número entero")
+                    return
+
             data = {
-                "cliente": self.cliente_input.text().strip(),
-                "fecha_movimiento": self.fecha_movimiento_input.date().toString(Qt.DateFormat.ISODate),
-                "corredor": self.corredor_input.text().strip(),
-                "tipo_seguro": self.tipo_seguro_input.text().strip(),  # Usar el texto ingresado
-                "carpeta": self.carpeta_input.text().strip(),
-                "poliza": self.poliza_input.text().strip(),
-                "endoso": self.endoso_input.text().strip(),
-                "vigencia_desde": self.vigencia_desde_input.date().toString(Qt.DateFormat.ISODate),
-                "vigencia_hasta": self.vigencia_hasta_input.date().toString(Qt.DateFormat.ISODate),
-                "premio": self.premio_input.text().strip(),
-                "usuario_id": 1,  # ID del usuario logueado
-                "creado_por_id": 1,  # ID del usuario logueado
-                "modificado_por_id": 1  # ID del usuario logueado
+                "Cliente": self.Cliente_input.text().strip(),
+                "FechaMov": self.FechaMov_input.date().toString(Qt.DateFormat.ISODate),
+                "Corredor": int(self.Corredor_input.text().strip()),
+                "Tipo_seguro": int(self.Tipo_seguro_input.text().strip()),
+                "Carpeta": self.Carpeta_input.text().strip(),
+                "Poliza": self.Poliza_input.text().strip() or None,
+                "Endoso": self.Endoso_input.text().strip() or None,
+                "Vto_Desde": self.Vto_Desde_input.date().toString(Qt.DateFormat.ISODate),
+                "Vto_Hasta": self.Vto_Hasta_input.date().toString(Qt.DateFormat.ISODate),
+                "Moneda": self.Moneda_input.currentText(),
+                "Premio": premio,
+                "Cuotas": cuotas,
+                "Observaciones": self.Observaciones_input.toPlainText().strip() or None
             }
             
             if self.movement_id:

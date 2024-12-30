@@ -7,7 +7,7 @@ import re
 
 # Definición de expresiones regulares para validar formatos
 PHONE_REGEX = r'^[0-9+\-\s()\/]*$'  # Más flexible: permite números, +, -, /, espacios y paréntesis
-EMAIL_REGEX = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
+EMAIL_REGEX = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
 
 def validate_phone(value: Optional[str]) -> Optional[str]:
     """Valida el formato de un número telefónico."""

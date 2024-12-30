@@ -14,13 +14,13 @@ class ClienteBase(BaseModel):
     nombres: Optional[str] = Field(default="", max_length=100, description="Nombres del cliente")
     apellidos: str = Field(max_length=100, description="Apellidos del cliente")
     tipo_documento: Optional[str] = Field(default=None, description="Tipo de documento de identidad")
-    documento: Optional[str] = Field(default="", max_length=50, description="Número de documento")
+    documentos: Optional[str] = Field(default="", max_length=50, description="Número de documento")
     fecha_nacimiento: Optional[date] = Field(default=None, description="Fecha de nacimiento")
     direccion: str = Field(max_length=200, description="Dirección del cliente")
     localidad: Optional[str] = Field(default="", max_length=50, description="Localidad de residencia")
     telefonos: Optional[str] = Field(default="", max_length=100, description="Números de teléfono fijo")
     movil: Optional[str] = Field(default="", max_length=100, description="Número de teléfono móvil")
-    email: Optional[str] = Field(default="", max_length=100, description="Correo electrónico")
+    mail: Optional[str] = Field(default="", max_length=100, description="Correo electrónico")
     corredor: Optional[int] = Field(default=None, description="ID del corredor asignado")
     observaciones: Optional[str] = Field(default="", max_length=500, description="Observaciones adicionales")
 
@@ -29,7 +29,7 @@ class ClienteBase(BaseModel):
     def validate_phone_fields(cls, value):
         return validate_phone(value)
 
-    @field_validator('email')
+    @field_validator('mail')
     @classmethod
     def validate_email_fields(cls, value):
         return validate_email(value)
