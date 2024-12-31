@@ -67,7 +67,7 @@ class MainWindow(QMainWindow):
         
         # Tabla de clientes
         self.clients_table = QTableWidget()
-        self.clients_table.setColumnCount(10)
+        self.clients_table.setColumnCount(11)
         self.clients_table.setHorizontalHeaderLabels([
             "ID", "Nombres", "Apellidos", "Número de Documento",
             "Teléfonos", "Móvil", "Email", "Dirección",
@@ -539,7 +539,19 @@ class MovementDialog(QDialog):
         layout = QFormLayout(self)
         
         # Campos del formulario
-        self.Cliente_input = QLineEdit()
+        self.Cliente_input = QLineEdit()  # Campo para mostrar/editar el ID
+        self.Cliente_input.setReadOnly(True)  # Solo lectura
+        self.cliente_selector = QComboBox()  # Selector de cliente
+        self.load_clients()  # Cargar la lista de clientes
+        
+        # Cuando se selecciona un cliente, actualizar el campo Cliente_input
+        self.cliente_selector.currentIndexChanged.connect(self.update_cliente_id)
+        
+        # Layout para cliente (ID y selector)
+        cliente_layout = QHBoxLayout()
+        cliente_layout.addWidget(self.Cliente_input)
+        cliente_layout.addWidget(self.cliente_selector)
+        
         self.FechaMov_input = QDateEdit()
         self.FechaMov_input.setCalendarPopup(True)
         self.FechaMov_input.setDate(QDate.currentDate())
@@ -561,7 +573,7 @@ class MovementDialog(QDialog):
         self.Observaciones_input = QTextEdit()
         
         # Agregar campos al layout
-        layout.addRow("Cliente:", self.Cliente_input)
+        layout.addRow("Cliente:", cliente_layout)
         layout.addRow("Fecha de Movimiento:", self.FechaMov_input)
         layout.addRow("Corredor:", self.Corredor_input)
         layout.addRow("Tipo de Seguro:", self.Tipo_seguro_input)
@@ -586,6 +598,33 @@ class MovementDialog(QDialog):
         button_box.addWidget(cancel_button)
         layout.addRow(button_box)
     
+    def load_clients(self):
+        """Carga la lista de clientes en el combo box"""
+        try:
+            response = requests.get(
+                "http://localhost:8000/clients",
+                headers={"Authorization": f"Bearer {self.token}"}
+            )
+            
+            if response.status_code == 200:
+                clients = response.json()
+                for client in clients:
+                    # Mostrar ID y nombre, guardar el ID
+                    self.cliente_selector.addItem(
+                        f"{client['id']} - {client['nombres']} {client['apellidos']}",
+                        userData=client['id']
+                    )
+            else:
+                QMessageBox.warning(self, "Error", "No se pudieron cargar los clientes")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Error al cargar clientes: {str(e)}")
+
+    def update_cliente_id(self):
+        """Actualiza el campo de ID cuando se selecciona un cliente"""
+        selected_id = self.cliente_selector.currentData()
+        if selected_id is not None:
+            self.Cliente_input.setText(str(selected_id))
+
     def load_movement_data(self):
         """Carga los datos del movimiento para edición"""
         try:
@@ -596,6 +635,10 @@ class MovementDialog(QDialog):
             
             if response.status_code == 200:
                 movement = response.json()
+                # Buscar y seleccionar el cliente correcto en el combo box
+                index = self.cliente_selector.findData(movement["Cliente"])
+                if index >= 0:
+                    self.cliente_selector.setCurrentIndex(index)
                 self.Cliente_input.setText(str(movement["Cliente"]))
                 self.FechaMov_input.setDate(QDate.fromString(movement["FechaMov"], Qt.DateFormat.ISODate))
                 self.Corredor_input.setText(str(movement["Corredor"]))
@@ -622,12 +665,12 @@ class MovementDialog(QDialog):
         try:
             # Validar campos requeridos
             if not all([
-                self.Cliente_input.text().strip(),
+                self.Cliente_input.text().strip(),  # Usar el ID del cliente
                 self.Corredor_input.text().strip(),
                 self.Tipo_seguro_input.text().strip(),
                 self.Carpeta_input.text().strip()
             ]):
-                QMessageBox.warning(self, "Error", "Por favor complete los campos obligatorios: Cliente, Corredor, Tipo de Seguro y Carpeta")
+                QMessageBox.warning(self, "Error", "Por favor complete los campos obligatorios")
                 return
 
             # Convertir premio y cuotas a números si no están vacíos
@@ -648,7 +691,7 @@ class MovementDialog(QDialog):
                     return
 
             data = {
-                "Cliente": self.Cliente_input.text().strip(),
+                "Cliente": int(self.Cliente_input.text().strip()),  # Convertir a entero
                 "FechaMov": self.FechaMov_input.date().toString(Qt.DateFormat.ISODate),
                 "Corredor": int(self.Corredor_input.text().strip()),
                 "Tipo_seguro": int(self.Tipo_seguro_input.text().strip()),
