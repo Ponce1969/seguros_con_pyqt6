@@ -14,7 +14,7 @@ class ClienteBase(BaseModel):
     nombres: Optional[str] = Field(default="", max_length=100)
     apellidos: str = Field(max_length=100)
     tipo_documento: Optional[str] = Field(default=None, max_length=50)
-    documentos: Optional[str] = Field(default="", max_length=50)
+    documento: Optional[str] = Field(default="", max_length=50)
     fecha_nacimiento: Optional[date] = None
     direccion: str = Field(max_length=200)
     localidad: Optional[str] = Field(default="", max_length=50)
@@ -49,8 +49,7 @@ class ClienteUpdate(BaseModel):
     apellidos: Optional[str] = Field(None, max_length=100)
     direccion: Optional[str] = Field(None, max_length=200)
     tipo_documento: Optional[str] = None
-    documentos: Optional[str] = None
-    fecha_nacimiento: Optional[date] = None
+    documento: Optional[str] = None
     localidad: Optional[str] = None
     telefonos: Optional[str] = None
     movil: Optional[str] = None

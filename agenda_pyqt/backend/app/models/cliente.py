@@ -30,7 +30,7 @@ class Cliente(Base):
     nombres = Column(String(100))
     apellidos = Column(String(100), nullable=False)
     tipo_documento = Column(String(50))
-    documentos = Column(String(50), unique=True, index=True)
+    documento = Column(String(50), unique=True, index=True)
     fecha_nacimiento = Column(Date)
     
     # Datos de contacto
