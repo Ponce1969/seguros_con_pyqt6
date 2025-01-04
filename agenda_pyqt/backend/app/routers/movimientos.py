@@ -4,9 +4,9 @@ from typing import List
 from uuid import UUID
 import logging
 
-from ..database import SessionLocal
+from ..db.session import SessionLocal
 from .. import models, schemas
-from ..security import get_current_active_user
+from ..core.security import get_current_active_user
 
 # Configurar logging
 logger = logging.getLogger(__name__)

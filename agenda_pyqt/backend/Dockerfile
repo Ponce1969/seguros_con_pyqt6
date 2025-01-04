@@ -13,6 +13,7 @@ RUN apt-get update \
         gcc \
         python3-dev \
         libpq-dev \
+        postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
 # Copiar requirements e instalar dependencias
@@ -30,5 +31,4 @@ USER appuser
 # Exponer el puerto
 EXPOSE 8000
 
-# Comando por defecto
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# El comando se especifica en docker-compose.yml

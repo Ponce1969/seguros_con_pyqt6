@@ -4,12 +4,12 @@ from sqlalchemy.orm import Session
 from typing import List
 from datetime import timedelta
 from .. import models, schemas
-from ..database import get_db
-from ..security import (
+from ..db.session import SessionLocal
+from ..core.security import (
     authenticate_user, create_access_token, get_password_hash,
     get_current_active_user, check_admin_permission,
-    ACCESS_TOKEN_EXPIRE_MINUTES
 )
+from ..core.config import settings
 
 router = APIRouter(
     prefix="/users",
@@ -17,7 +17,7 @@ router = APIRouter(
 )
 
 @router.get("/check-first-run", dependencies=[])
-async def check_first_run(db: Session = Depends(get_db)):
+async def check_first_run(db: Session = Depends(SessionLocal)):
     """Verifica si es la primera ejecución (no hay usuarios)"""
     try:
         # Verificar si existe configuración del sistema
@@ -39,7 +39,7 @@ async def check_first_run(db: Session = Depends(get_db)):
 @router.post("/token")
 async def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(),
-    db: Session = Depends(get_db)
+    db: Session = Depends(SessionLocal)
 ):
     user = authenticate_user(db, form_data.username, form_data.password)
     if not user:
@@ -48,7 +48,7 @@ async def login_for_access_token(
             detail="Email o contraseña incorrectos",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.email}, expires_delta=access_token_expires
     )
@@ -57,7 +57,7 @@ async def login_for_access_token(
 @router.post("/", response_model=schemas.User)
 async def create_user(
     user: schemas.UserCreate,
-    db: Session = Depends(get_db),
+    db: Session = Depends(SessionLocal),
     current_user: models.User = Depends(check_admin_permission)
 ):
     # Verificar si el email ya existe
@@ -81,7 +81,7 @@ async def read_users_me(current_user: models.User = Depends(get_current_active_u
 async def read_users(
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db),
+    db: Session = Depends(SessionLocal),
     current_user: models.User = Depends(check_admin_permission)
 ):
     users = db.query(models.User).offset(skip).limit(limit).all()
@@ -90,7 +90,7 @@ async def read_users(
 @router.get("/{user_id}", response_model=schemas.User)
 async def read_user(
     user_id: int,
-    db: Session = Depends(get_db),
+    db: Session = Depends(SessionLocal),
     current_user: models.User = Depends(get_current_active_user)
 ):
     # Solo admins pueden ver otros usuarios
@@ -106,7 +106,7 @@ async def read_user(
 async def update_user(
     user_id: int,
     user_update: schemas.UserUpdate,
-    db: Session = Depends(get_db),
+    db: Session = Depends(SessionLocal),
     current_user: models.User = Depends(get_current_active_user)
 ):
     # Solo admins pueden modificar otros usuarios
@@ -131,7 +131,7 @@ async def update_user(
 @router.delete("/{user_id}")
 async def delete_user(
     user_id: int,
-    db: Session = Depends(get_db),
+    db: Session = Depends(SessionLocal),
     current_user: models.User = Depends(check_admin_permission)
 ):
     db_user = db.query(models.User).filter(models.User.id == user_id).first()
@@ -143,7 +143,7 @@ async def delete_user(
     return {"message": "Usuario eliminado"}
 
 @router.post("/setup-admin", response_model=schemas.User)
-async def setup_admin(user: schemas.UserCreate, db: Session = Depends(get_db)):
+async def setup_admin(user: schemas.UserCreate, db: Session = Depends(SessionLocal)):
     """Crea el usuario administrador inicial (solo funciona si no hay usuarios)"""
     try:
         # Verificar si ya existe un usuario administrador

@@ -14,7 +14,7 @@ class ClienteBase(BaseModel):
     nombres: Optional[str] = Field(default="", max_length=100, description="Nombres del cliente")
     apellidos: str = Field(max_length=100, description="Apellidos del cliente")
     tipo_documento: Optional[str] = Field(default=None, description="Tipo de documento de identidad")
-    documentos: Optional[str] = Field(default="", max_length=50, description="Número de documento")
+    numero_documento: Optional[str] = Field(default="", max_length=50, description="Número de documento")
     fecha_nacimiento: Optional[date] = Field(default=None, description="Fecha de nacimiento")
     direccion: str = Field(max_length=200, description="Dirección del cliente")
     localidad: Optional[str] = Field(default="", max_length=50, description="Localidad de residencia")

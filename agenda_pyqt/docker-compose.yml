@@ -7,9 +7,10 @@ services:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
+      - PGDATA=/var/lib/postgresql/data/pgdata
     volumes:
       - "./init-scripts:/docker-entrypoint-initdb.d"
-      - postgres_data:/var/lib/postgresql/data
+      - "./datos:/var/lib/postgresql/data"
     ports:
       - "5433:5432"
     networks:
@@ -49,6 +50,3 @@ services:
 networks:
   backend:
     driver: bridge
-
-volumes:
-  postgres_data:
