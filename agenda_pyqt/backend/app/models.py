@@ -2,8 +2,12 @@ from sqlalchemy import Column, Integer, String, Date, Text, ForeignKey, Float, B
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import uuid
-from datetime import datetime
-from .database import Base
+from datetime import datetime, timezone
+import pytz
+
+def get_utc_now():
+    """Función helper para obtener el tiempo UTC actual"""
+    return datetime.now(pytz.utc)
 
 class Cliente(Base):
     __tablename__ = "clientes"
@@ -23,8 +27,8 @@ class Cliente(Base):
     observaciones = Column(Text)  # Observaciones adicionales
     creado_por_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     modificado_por_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    fecha_creacion = Column(DateTime, default=datetime.utcnow)
-    fecha_modificacion = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    fecha_creacion = Column(DateTime(timezone=True), default=get_utc_now)
+    fecha_modificacion = Column(DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now)
 
     # Relación con el usuario que creó el registro
     creado_por_usuario = relationship("User", foreign_keys=[creado_por_id], back_populates="clientes_creados")
@@ -92,7 +96,7 @@ class SystemConfig(Base):
 
     id = Column(Integer, primary_key=True)
     first_run_completed = Column(Boolean, default=False)
-    setup_date = Column(DateTime, default=datetime.utcnow)
+    setup_date = Column(DateTime(timezone=True), default=get_utc_now)
 
 class User(Base):
     __tablename__ = "users"
@@ -104,8 +108,8 @@ class User(Base):
     is_active = Column(Boolean, default=True)  # Reemplaza User_Validado por un booleano más estándar
     role = Column(String(20), default="user")  # Para diferentes niveles de acceso
     comision_porcentaje = Column(Float, default=0.0)  # Porcentaje de comisión del usuario
-    fecha_creacion = Column(DateTime, default=datetime.utcnow)
-    ultima_modificacion = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    fecha_creacion = Column(DateTime(timezone=True), default=get_utc_now)
+    ultima_modificacion = Column(DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now)
 
     # Relaciones
     clientes_creados = relationship("Cliente", back_populates="creado_por_usuario", 

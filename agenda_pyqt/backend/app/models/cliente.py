@@ -56,5 +56,7 @@ class Cliente(Base):
     # Relaciones
     creado_por_usuario = relationship("User", foreign_keys=[creado_por_id], back_populates="clientes_creados")
     modificado_por_usuario = relationship("User", foreign_keys=[modificado_por_id], back_populates="clientes_modificados")
-    movimientos_vigencias = relationship("MovimientoVigencia", back_populates="cliente_rel", cascade="all, delete-orphan")
+    movimientos_vigencias = relationship("MovimientoVigencia", back_populates="cliente_rel", 
+                                       primaryjoin="Cliente.id == MovimientoVigencia.cliente_id",
+                                       cascade="all, delete-orphan")
     corredor_rel = relationship("Corredor", back_populates="clientes")

@@ -12,7 +12,6 @@ class MovimientoVigencia(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     cliente_id = Column(UUID(as_uuid=True), ForeignKey("clientes.id"), nullable=False)
-    numero_cliente = Column(BigInteger, ForeignKey("clientes.numero_cliente"))
     corredor_id = Column(Integer, ForeignKey("corredores.numero"))
     tipo_seguro_id = Column(Integer, ForeignKey("tipos_seguros.id"), nullable=False)
     carpeta = Column(String(100))
@@ -28,6 +27,6 @@ class MovimientoVigencia(Base):
     observaciones = Column(String(500))
 
     # Relaciones
-    cliente_rel = relationship("Cliente", foreign_keys=[cliente_id], back_populates="movimientos_vigencias")
+    cliente_rel = relationship("Cliente", back_populates="movimientos_vigencias")
     corredor_rel = relationship("Corredor", back_populates="movimientos")
     tipo_seguro_rel = relationship("TipoSeguro", back_populates="movimientos")

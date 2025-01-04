@@ -2,8 +2,13 @@
 Modelos relacionados con la entidad Usuario.
 """
 from sqlalchemy import Boolean, Column, Integer, String, DateTime
-from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 from app.database import Base
+from datetime import datetime, timezone
+
+def get_utc_now():
+    """Función helper para obtener el tiempo UTC actual"""
+    return datetime.now(timezone.utc)
 
 class Usuario(Base):
     """Modelo para la tabla usuarios."""
@@ -15,5 +20,5 @@ class Usuario(Base):
     hashed_password = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)
     is_superuser = Column(Boolean, default=False)
-    fecha_creacion = Column(DateTime(timezone=True), server_default=func.now())
-    fecha_modificacion = Column(DateTime(timezone=True), onupdate=func.now())
+    fecha_creacion = Column(DateTime(timezone=True), default=get_utc_now)
+    fecha_modificacion = Column(DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now)

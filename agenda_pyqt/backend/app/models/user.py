@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, Boolean, Float, DateTime
 from sqlalchemy.orm import relationship
-from datetime import datetime, timezone
 from ..db.base import Base
+from datetime import datetime, timezone
 
 def get_utc_now():
     """Función helper para obtener el tiempo UTC actual"""
