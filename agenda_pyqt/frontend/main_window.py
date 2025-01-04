@@ -69,7 +69,7 @@ class MainWindow(QMainWindow):
         self.clients_table = QTableWidget()
         self.clients_table.setColumnCount(10)
         self.clients_table.setHorizontalHeaderLabels([
-            "ID", "Nombres", "Apellidos", "Número de Documento",
+            "ID", "Nombres", "Apellidos", "Documento",
             "Teléfonos", "Móvil", "Email", "Dirección",
             "Localidad", "Acciones"
         ])
@@ -140,52 +140,54 @@ class MainWindow(QMainWindow):
         """Carga la lista de clientes desde el servidor"""
         try:
             response = requests.get(
-                "http://localhost:8000/clients",
-                headers={"Authorization": f"Bearer {self.token}"}
+                'http://localhost:8000/clients/',
+                headers={'Authorization': f'Bearer {self.token}'}
             )
-            
-            # Limpiar la tabla
+            response.raise_for_status()
+            clients = response.json()
+
+            # Configurar la tabla
             self.clients_table.setRowCount(0)
-            
-            if response.status_code == 200:
-                clients = response.json()
-                if not clients:  # Si la lista está vacía
-                    self.clients_table.setRowCount(1)
-                    empty_message = QTableWidgetItem("No hay clientes registrados. Use el botón 'Agregar Cliente' para comenzar.")
-                    empty_message.setFlags(Qt.ItemFlag.ItemIsEnabled)  # Hacer la celda de solo lectura
-                    self.clients_table.setSpan(0, 0, 1, 10)  # Combinar todas las columnas
-                    self.clients_table.setItem(0, 0, empty_message)
-                    return
+            self.clients_table.setColumnCount(10)
+            self.clients_table.setHorizontalHeaderLabels([
+                "ID", "Nombres", "Apellidos", "Documento",
+                "Teléfonos", "Móvil", "Email", "Dirección",
+                "Localidad", "Acciones"
+            ])
+
+            # Ajustar el ancho de las columnas
+            header = self.clients_table.horizontalHeader()
+            for i in range(self.clients_table.columnCount() - 1):  # -1 para excluir la columna de acciones
+                header.setSectionResizeMode(i, QHeaderView.ResizeMode.ResizeToContents)
+            header.setSectionResizeMode(self.clients_table.columnCount() - 1, QHeaderView.ResizeMode.Fixed)
+
+            # Llenar la tabla con los datos
+            for row, client in enumerate(clients):
+                self.clients_table.insertRow(row)
+                self.clients_table.setItem(row, 0, QTableWidgetItem(client["id"]))
+                self.clients_table.setItem(row, 1, QTableWidgetItem(client["nombres"]))
+                self.clients_table.setItem(row, 2, QTableWidgetItem(client["apellidos"]))
+                self.clients_table.setItem(row, 3, QTableWidgetItem(client["documento"]))
+                self.clients_table.setItem(row, 4, QTableWidgetItem(client["telefonos"]))
+                self.clients_table.setItem(row, 5, QTableWidgetItem(client["movil"]))
+                self.clients_table.setItem(row, 6, QTableWidgetItem(client["email"]))
+                self.clients_table.setItem(row, 7, QTableWidgetItem(client["direccion"]))
+                self.clients_table.setItem(row, 8, QTableWidgetItem(client["localidad"]))
                 
-                for client in clients:
-                    row = self.clients_table.rowCount()
-                    self.clients_table.insertRow(row)
-                    
-                    # Añadir datos del cliente
-                    self.clients_table.setItem(row, 0, QTableWidgetItem(str(client["id"])))
-                    self.clients_table.setItem(row, 1, QTableWidgetItem(client["nombres"]))
-                    self.clients_table.setItem(row, 2, QTableWidgetItem(client["apellidos"]))
-                    self.clients_table.setItem(row, 3, QTableWidgetItem(client["documentos"]))
-                    self.clients_table.setItem(row, 4, QTableWidgetItem(client["telefonos"]))
-                    self.clients_table.setItem(row, 5, QTableWidgetItem(client["movil"]))
-                    self.clients_table.setItem(row, 6, QTableWidgetItem(client["mail"]))
-                    self.clients_table.setItem(row, 7, QTableWidgetItem(client["direccion"]))
-                    self.clients_table.setItem(row, 8, QTableWidgetItem(client["localidad"]))
-                    
-                    # Botones de acción
-                    action_widget = QWidget()
-                    action_layout = QHBoxLayout(action_widget)
-                    action_layout.setContentsMargins(0, 0, 0, 0)
-                    
-                    edit_button = QPushButton("Editar")
-                    edit_button.clicked.connect(lambda checked, cid=client["id"]: self.show_edit_client_dialog(cid))
-                    action_layout.addWidget(edit_button)
-                    
-                    delete_button = QPushButton("Eliminar")
-                    delete_button.clicked.connect(lambda checked, cid=client["id"]: self.delete_client(cid))
-                    action_layout.addWidget(delete_button)
-                    
-                    self.clients_table.setCellWidget(row, 9, action_widget)
+                # Botones de acción
+                action_widget = QWidget()
+                action_layout = QHBoxLayout(action_widget)
+                action_layout.setContentsMargins(0, 0, 0, 0)
+                
+                edit_button = QPushButton("Editar")
+                edit_button.clicked.connect(lambda checked, cid=client["id"]: self.show_edit_client_dialog(cid))
+                action_layout.addWidget(edit_button)
+                
+                delete_button = QPushButton("Eliminar")
+                delete_button.clicked.connect(lambda checked, cid=client["id"]: self.delete_client(cid))
+                action_layout.addWidget(delete_button)
+                
+                self.clients_table.setCellWidget(row, 9, action_widget)
             
             elif response.status_code == 404:
                 self.clients_table.setRowCount(1)
@@ -399,7 +401,7 @@ class ClientDialog(QDialog):
         self.localidad_input = QLineEdit()
         self.telefonos_input = QLineEdit()
         self.movil_input = QLineEdit()
-        self.mail_input = QLineEdit()
+        self.email_input = QLineEdit()
         self.observaciones_input = QTextEdit()
         
         # Agregar campos al layout
@@ -412,7 +414,7 @@ class ClientDialog(QDialog):
         layout.addRow("Localidad:", self.localidad_input)
         layout.addRow("Teléfonos:", self.telefonos_input)
         layout.addRow("Móvil:", self.movil_input)
-        layout.addRow("Email:", self.mail_input)
+        layout.addRow("Email:", self.email_input)
         layout.addRow("Observaciones:", self.observaciones_input)
         
         # Botones
@@ -439,13 +441,13 @@ class ClientDialog(QDialog):
                 self.nombres_input.setText(client["nombres"])
                 self.apellidos_input.setText(client["apellidos"])
                 self.tipo_documento_input.setCurrentText(client["tipo_documento"])
-                self.documentos_input.setText(client["documentos"])
+                self.documentos_input.setText(client["documento"])
                 self.fecha_nacimiento_input.setDate(QDate.fromString(client["fecha_nacimiento"], Qt.DateFormat.ISODate))
                 self.direccion_input.setText(client["direccion"])
                 self.localidad_input.setText(client["localidad"] or "")
                 self.telefonos_input.setText(client["telefonos"])
                 self.movil_input.setText(client["movil"])
-                self.mail_input.setText(client["mail"])
+                self.email_input.setText(client["email"])
                 self.observaciones_input.setPlainText(client["observaciones"] or "")
             else:
                 QMessageBox.warning(self, "Error", "No se pudo cargar los datos del cliente")
@@ -470,13 +472,13 @@ class ClientDialog(QDialog):
                 "nombres": self.nombres_input.text().strip(),
                 "apellidos": self.apellidos_input.text().strip(),
                 "tipo_documento": self.tipo_documento_input.currentText() if self.tipo_documento_input.currentText() != "" else None,
-                "documentos": self.documentos_input.text().strip(),
+                "documento": self.documentos_input.text().strip(),
                 "fecha_nacimiento": self.fecha_nacimiento_input.date().toString(Qt.DateFormat.ISODate) if not self.fecha_nacimiento_input.date().isNull() else None,
                 "direccion": self.direccion_input.text().strip(),
                 "localidad": self.localidad_input.text().strip() or None,
                 "telefonos": self.telefonos_input.text().strip(),
                 "movil": self.movil_input.text().strip(),
-                "mail": self.mail_input.text().strip(),
+                "email": self.email_input.text().strip(),
                 "observaciones": self.observaciones_input.toPlainText().strip() or None
             }
             
@@ -539,7 +541,19 @@ class MovementDialog(QDialog):
         layout = QFormLayout(self)
         
         # Campos del formulario
-        self.Cliente_input = QLineEdit()
+        self.Cliente_input = QLineEdit()  # Campo para mostrar/editar el ID
+        self.Cliente_input.setReadOnly(True)  # Solo lectura
+        self.cliente_selector = QComboBox()  # Selector de cliente
+        self.load_clients()  # Cargar la lista de clientes
+        
+        # Cuando se selecciona un cliente, actualizar el campo Cliente_input
+        self.cliente_selector.currentIndexChanged.connect(self.update_cliente_id)
+        
+        # Layout para cliente (ID y selector)
+        cliente_layout = QHBoxLayout()
+        cliente_layout.addWidget(self.Cliente_input)
+        cliente_layout.addWidget(self.cliente_selector)
+        
         self.FechaMov_input = QDateEdit()
         self.FechaMov_input.setCalendarPopup(True)
         self.FechaMov_input.setDate(QDate.currentDate())
@@ -561,7 +575,7 @@ class MovementDialog(QDialog):
         self.Observaciones_input = QTextEdit()
         
         # Agregar campos al layout
-        layout.addRow("Cliente:", self.Cliente_input)
+        layout.addRow("Cliente:", cliente_layout)
         layout.addRow("Fecha de Movimiento:", self.FechaMov_input)
         layout.addRow("Corredor:", self.Corredor_input)
         layout.addRow("Tipo de Seguro:", self.Tipo_seguro_input)
@@ -586,6 +600,33 @@ class MovementDialog(QDialog):
         button_box.addWidget(cancel_button)
         layout.addRow(button_box)
     
+    def load_clients(self):
+        """Carga la lista de clientes en el combo box"""
+        try:
+            response = requests.get(
+                "http://localhost:8000/clients",
+                headers={"Authorization": f"Bearer {self.token}"}
+            )
+            
+            if response.status_code == 200:
+                clients = response.json()
+                for client in clients:
+                    # Mostrar ID y nombre, guardar el ID
+                    self.cliente_selector.addItem(
+                        f"{client['id']} - {client['nombres']} {client['apellidos']}",
+                        userData=client['id']
+                    )
+            else:
+                QMessageBox.warning(self, "Error", "No se pudieron cargar los clientes")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Error al cargar clientes: {str(e)}")
+
+    def update_cliente_id(self):
+        """Actualiza el campo de ID cuando se selecciona un cliente"""
+        selected_id = self.cliente_selector.currentData()
+        if selected_id is not None:
+            self.Cliente_input.setText(str(selected_id))
+
     def load_movement_data(self):
         """Carga los datos del movimiento para edición"""
         try:
@@ -596,6 +637,10 @@ class MovementDialog(QDialog):
             
             if response.status_code == 200:
                 movement = response.json()
+                # Buscar y seleccionar el cliente correcto en el combo box
+                index = self.cliente_selector.findData(movement["Cliente"])
+                if index >= 0:
+                    self.cliente_selector.setCurrentIndex(index)
                 self.Cliente_input.setText(str(movement["Cliente"]))
                 self.FechaMov_input.setDate(QDate.fromString(movement["FechaMov"], Qt.DateFormat.ISODate))
                 self.Corredor_input.setText(str(movement["Corredor"]))
@@ -622,12 +667,12 @@ class MovementDialog(QDialog):
         try:
             # Validar campos requeridos
             if not all([
-                self.Cliente_input.text().strip(),
+                self.Cliente_input.text().strip(),  # Usar el ID del cliente
                 self.Corredor_input.text().strip(),
                 self.Tipo_seguro_input.text().strip(),
                 self.Carpeta_input.text().strip()
             ]):
-                QMessageBox.warning(self, "Error", "Por favor complete los campos obligatorios: Cliente, Corredor, Tipo de Seguro y Carpeta")
+                QMessageBox.warning(self, "Error", "Por favor complete los campos obligatorios")
                 return
 
             # Convertir premio y cuotas a números si no están vacíos
@@ -648,7 +693,7 @@ class MovementDialog(QDialog):
                     return
 
             data = {
-                "Cliente": self.Cliente_input.text().strip(),
+                "Cliente": int(self.Cliente_input.text().strip()),  # Convertir a entero
                 "FechaMov": self.FechaMov_input.date().toString(Qt.DateFormat.ISODate),
                 "Corredor": int(self.Corredor_input.text().strip()),
                 "Tipo_seguro": int(self.Tipo_seguro_input.text().strip()),

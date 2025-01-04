@@ -12,13 +12,13 @@ class Cliente(Base):
     nombres = Column(String(30), nullable=False)  # Nombre del cliente
     apellidos = Column(String(30), nullable=False)  # Apellido del cliente
     tipo_documento = Column(String(4), nullable=False)  # Tipo de documento (DNI, CI, RUT, CUIT)
-    documentos = Column(String(20), nullable=False, unique=True, index=True)  # Número de documento
+    documento = Column(String(20), nullable=False, unique=True, index=True)  # Número de documento
     fecha_nacimiento = Column(Date, nullable=False)  # Fecha de nacimiento
     direccion = Column(String(70), nullable=False)  # Dirección
     localidad = Column(String(15))  # Localidad
     telefonos = Column(String(20), nullable=False)  # Teléfonos
     movil = Column(String(20), nullable=False)  # Móvil
-    mail = Column(String(50), nullable=False, unique=True, index=True)  # Correo electrónico
+    email = Column(String(50), nullable=False, unique=True, index=True)  # Correo electrónico
     corredor = Column(Integer)  # ID del corredor (si aplica)
     observaciones = Column(Text)  # Observaciones adicionales
     creado_por_id = Column(Integer, ForeignKey("users.id"), nullable=False)

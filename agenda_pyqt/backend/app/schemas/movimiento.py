@@ -3,14 +3,13 @@ Schemas relacionados con la entidad MovimientoVigencia.
 """
 from datetime import date
 from typing import Optional
-from uuid import UUID
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, conint
 
 class MovimientoVigenciaBase(BaseModel):
     """Modelo base para movimientos de vigencia."""
     FechaMov: date = Field(description="Fecha del movimiento")
     Corredor: int = Field(description="ID del corredor")
-    Cliente: str = Field(description="ID del cliente")
+    Cliente: conint(gt=0) = Field(description="ID del cliente")  # Asegura que sea un entero positivo
     Tipo_seguro: int = Field(description="ID del tipo de seguro")
     Carpeta: str = Field(max_length=100, description="Carpeta del movimiento")
     Poliza: Optional[str] = Field(default=None, max_length=100, description="Póliza del movimiento")

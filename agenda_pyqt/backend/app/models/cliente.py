@@ -1,4 +1,7 @@
-from sqlalchemy import Column, Integer, String, Date, Text, ForeignKey, DateTime
+"""
+Modelos relacionados con la entidad Cliente.
+"""
+from sqlalchemy import Column, Integer, String, Date, Text, ForeignKey, DateTime, Sequence, BigInteger
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import uuid
@@ -10,28 +13,48 @@ def get_utc_now():
     return datetime.now(timezone.utc)
 
 class Cliente(Base):
+    """Modelo para la tabla clientes con numeración segura."""
     __tablename__ = "clientes"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)  # UUID como clave primaria
-    nombres = Column(String(30), nullable=False)  # Nombre del cliente
-    apellidos = Column(String(30), nullable=False)  # Apellido del cliente
-    tipo_documento = Column(String(4), nullable=False)  # Tipo de documento (DNI, CI, RUT, CUIT)
-    numero_documento = Column(String(20), nullable=False, unique=True, index=True)  # Número de documento
-    fecha_nacimiento = Column(Date, nullable=False)  # Fecha de nacimiento
-    direccion = Column(String(70), nullable=False)  # Dirección completa
-    localidad = Column(String(15))  # Ciudad o localidad
-    telefonos = Column(String(20), nullable=False)  # Teléfono fijo
-    movil = Column(String(20), nullable=False)  # Teléfono móvil/celular
-    mail = Column(String(50), nullable=False, unique=True, index=True)  # Correo electrónico
-    corredor = Column(Integer, ForeignKey("corredores.numero"))  # ID del corredor asignado
-    observaciones = Column(Text)  # Observaciones adicionales
-    creado_por_id = Column(Integer, ForeignKey("users.id"), nullable=False)  # Usuario que creó el registro
-    modificado_por_id = Column(Integer, ForeignKey("users.id"), nullable=False)  # Usuario que modificó por última vez
-    fecha_creacion = Column(DateTime(timezone=True), default=get_utc_now)  # Fecha y hora de creación
-    fecha_modificacion = Column(DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now)  # Fecha y hora de última modificación
+    # Secuencia para numero_cliente
+    cliente_seq = Sequence('cliente_numero_seq')
+
+    # Campos de identificación
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    numero_cliente = Column(
+        BigInteger,
+        Sequence('cliente_numero_seq'),
+        unique=True,
+        nullable=False,
+        index=True
+    )
+
+    # Datos personales
+    nombres = Column(String(100), nullable=False)
+    apellidos = Column(String(100), nullable=False)
+    tipo_documento = Column(String(50), nullable=False)
+    numero_documento = Column(String(50), nullable=False, unique=True, index=True)
+    fecha_nacimiento = Column(Date, nullable=False)
+    
+    # Datos de contacto
+    direccion = Column(String(200), nullable=False)
+    localidad = Column(String(50))
+    telefonos = Column(String(100), nullable=False)
+    movil = Column(String(100), nullable=False)
+    mail = Column(String(100), nullable=False, unique=True, index=True)
+    
+    # Datos del negocio
+    corredor = Column(Integer, ForeignKey("corredores.numero"))
+    observaciones = Column(Text)
+    
+    # Campos de auditoría
+    creado_por_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    modificado_por_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    fecha_creacion = Column(DateTime(timezone=True), default=get_utc_now)
+    fecha_modificacion = Column(DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now)
 
     # Relaciones
     creado_por_usuario = relationship("User", foreign_keys=[creado_por_id], back_populates="clientes_creados")
     modificado_por_usuario = relationship("User", foreign_keys=[modificado_por_id], back_populates="clientes_modificados")
     movimientos_vigencias = relationship("MovimientoVigencia", back_populates="cliente_rel", cascade="all, delete-orphan")
-    corredor_rel = relationship("Corredor", back_populates="clientes")  # Relación con el corredor
+    corredor_rel = relationship("Corredor", back_populates="clientes")
