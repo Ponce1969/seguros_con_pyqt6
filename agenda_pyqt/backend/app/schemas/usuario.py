@@ -1,53 +1,50 @@
 """
-Schemas relacionados con la entidad Usuario.
+Esquemas Pydantic para usuarios.
 """
-from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, Field, field_validator, ConfigDict
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
+from datetime import datetime
 
-from .base import validate_email, EMAIL_REGEX
-
-class UserBase(BaseModel):
-    """Modelo base para usuarios con validaciones."""
-    username: str = Field(min_length=3, description="Nombre de usuario")
-    email: str = Field(pattern=EMAIL_REGEX, description="Correo electrónico")
-    is_active: bool = Field(default=True, description="Estado del usuario")
-    is_superuser: bool = Field(default=False, description="Es superusuario")
-    role: str = Field(default="user", description="Rol del usuario")
-    comision_porcentaje: float = Field(default=0.0, description="Porcentaje de comisión")
-
-    @field_validator('email')
-    @classmethod
-    def validate_email_fields(cls, value):
-        return validate_email(value)
+class UsuarioBase(BaseModel):
+    """Esquema base para usuarios"""
+    email: Optional[EmailStr] = Field(None, description="Correo electrónico")
+    is_active: Optional[bool] = Field(True, description="Estado del usuario")
+    is_superuser: bool = Field(False, description="Es superusuario")
+    nombre: Optional[str] = Field(None, description="Nombre")
+    apellido: Optional[str] = Field(None, description="Apellido")
+    username: Optional[str] = Field(None, description="Nombre de usuario")
+    role: Optional[str] = Field(None, description="Rol del usuario")
+    comision_porcentaje: Optional[float] = Field(0.0, description="Porcentaje de comisión")
 
     model_config = ConfigDict(from_attributes=True)
 
-class UserCreate(UserBase):
-    """Modelo para crear nuevos usuarios."""
+class UsuarioCreate(UsuarioBase):
+    """Esquema para crear usuarios"""
+    email: EmailStr = Field(description="Correo electrónico")
     password: str = Field(min_length=8, description="Contraseña del usuario")
+    nombre: str = Field(description="Nombre")
+    apellido: str = Field(description="Apellido")
+    username: str = Field(min_length=3, description="Nombre de usuario")
+    role: str = Field(default="user", description="Rol del usuario")
 
-class UserUpdate(BaseModel):
-    """Modelo para actualizar usuarios existentes."""
-    username: Optional[str] = Field(None, min_length=3)
-    email: Optional[str] = Field(None, pattern=EMAIL_REGEX)
-    password: Optional[str] = Field(None, min_length=8)
-    is_active: Optional[bool] = None
-    is_superuser: Optional[bool] = None
-    role: Optional[str] = None
-    comision_porcentaje: Optional[float] = None
-
-    @field_validator('email')
-    @classmethod
-    def validate_email_fields(cls, value):
-        return validate_email(value)
+class UsuarioUpdate(UsuarioBase):
+    """Esquema para actualizar usuarios"""
+    password: Optional[str] = Field(None, min_length=8, description="Contraseña del usuario")
 
     model_config = ConfigDict(from_attributes=True)
 
-class User(UserBase):
-    """Modelo completo de usuario con campos adicionales del sistema."""
+class Usuario(UsuarioBase):
+    """Esquema para respuestas de usuario"""
     id: int = Field(description="ID único del usuario")
     fecha_creacion: datetime = Field(description="Fecha de creación del registro")
-    ultima_modificacion: datetime = Field(description="Fecha de última modificación")
+    fecha_modificacion: datetime = Field(description="Fecha de última modificación")
+    is_active: bool = Field(description="Estado del usuario")
+    is_superuser: bool = Field(description="Es superusuario")
 
     model_config = ConfigDict(from_attributes=True)
+
+# Alias para mantener compatibilidad con código existente
+UserBase = UsuarioBase
+UserCreate = UsuarioCreate
+UserUpdate = UsuarioUpdate
+User = Usuario

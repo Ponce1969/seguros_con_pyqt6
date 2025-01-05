@@ -1,4 +1,4 @@
-FROM python:3.9-slim
+FROM python:3.9
 
 # Establecer variables de entorno
 ENV PYTHONDONTWRITEBYTECODE 1
@@ -17,11 +17,12 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Copiar requirements e instalar dependencias
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY ./requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt \
+    && pip install --no-cache-dir "pydantic[email]"
 
 # Copiar el código de la aplicación
-COPY . .
+COPY . /app/
 
 # Crear un usuario no root para ejecutar la aplicación
 RUN useradd -m -u 1000 appuser && \
@@ -32,3 +33,4 @@ USER appuser
 EXPOSE 8000
 
 # El comando se especifica en docker-compose.yml
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

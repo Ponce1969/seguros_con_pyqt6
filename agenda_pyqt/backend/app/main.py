@@ -2,9 +2,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .db.base import Base
 from .db.session import engine, SessionLocal
-from .routers import clientes, movimientos, corredores, tipos_seguros, users, auth
+from .api.api_v1.api import api_router
 from .core.config import settings
 from .db.init_db import init_db
+from .routers import clientes, movimientos
 import logging
 
 # Configurar logging
@@ -23,7 +24,8 @@ finally:
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    version=settings.VERSION
+    version=settings.VERSION,
+    openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
 
 # Configurar CORS
@@ -35,13 +37,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Incluir los routers
-app.include_router(auth.router, prefix=settings.API_V1_STR)
-app.include_router(users.router, prefix=settings.API_V1_STR)
-app.include_router(clientes.router, prefix=f"{settings.API_V1_STR}/clients", tags=["clients"])
-app.include_router(movimientos.router, prefix=f"{settings.API_V1_STR}/movements", tags=["movements"])
-app.include_router(corredores.router, prefix=f"{settings.API_V1_STR}/corredores", tags=["corredores"])
-app.include_router(tipos_seguros.router, prefix=f"{settings.API_V1_STR}/tipos-seguros", tags=["tipos_seguros"])
+# Incluir el router principal de la API v1
+app.include_router(api_router, prefix=settings.API_V1_STR)
+
+# Incluir routers adicionales
+app.include_router(clientes.router, prefix=f"{settings.API_V1_STR}/clientes", tags=["clientes"])
+app.include_router(movimientos.router, prefix=f"{settings.API_V1_STR}/movimientos", tags=["movimientos"])
 
 @app.get("/")
 def read_root():

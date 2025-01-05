@@ -27,6 +27,24 @@ class MovimientoVigenciaCreate(MovimientoVigenciaBase):
     """Modelo para crear nuevos movimientos de vigencia."""
     pass
 
+class MovimientoVigenciaUpdate(BaseModel):
+    """Modelo para actualizar movimientos de vigencia existentes."""
+    FechaMov: Optional[date] = None
+    Corredor: Optional[int] = None
+    Cliente: Optional[conint(gt=0)] = None
+    Tipo_seguro: Optional[int] = None
+    Carpeta: Optional[str] = Field(None, max_length=100)
+    Poliza: Optional[str] = Field(None, max_length=100)
+    Endoso: Optional[str] = Field(None, max_length=100)
+    Vto_Desde: Optional[date] = None
+    Vto_Hasta: Optional[date] = None
+    Moneda: Optional[str] = Field(None, max_length=10)
+    Premio: Optional[float] = None
+    Cuotas: Optional[int] = None
+    Observaciones: Optional[str] = Field(None, max_length=500)
+
+    model_config = ConfigDict(from_attributes=True)
+
 class MovimientoVigencia(MovimientoVigenciaBase):
     """Modelo completo de movimiento de vigencia."""
     Id_movimiento: int = Field(description="ID del movimiento")

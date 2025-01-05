@@ -1,9 +1,10 @@
-from . import clientes, movimientos, corredores, tipos_seguros, users
+from . import cliente, movimientos, corredores, tipos_seguros
+from .crud_usuario import crud_usuario
 
 __all__ = [
-    "clientes",
+    "cliente",
     "movimientos",
     "corredores",
     "tipos_seguros",
-    "users"
+    "crud_usuario"
 ]

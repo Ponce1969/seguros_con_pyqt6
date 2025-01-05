@@ -6,7 +6,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import uuid
 from datetime import datetime, timezone
-from ..db.base import Base
+from ..db.base_class import Base
 
 def get_utc_now():
     """Función helper para obtener el tiempo UTC actual"""
@@ -48,14 +48,14 @@ class Cliente(Base):
     observaciones = Column(Text)
     
     # Campos de auditoría
-    creado_por_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    modificado_por_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    creado_por_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
+    modificado_por_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
     fecha_creacion = Column(DateTime(timezone=True), default=get_utc_now)
     fecha_modificacion = Column(DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now)
 
     # Relaciones
-    creado_por_usuario = relationship("User", foreign_keys=[creado_por_id], back_populates="clientes_creados")
-    modificado_por_usuario = relationship("User", foreign_keys=[modificado_por_id], back_populates="clientes_modificados")
+    creado_por_usuario = relationship("Usuario", foreign_keys=[creado_por_id], back_populates="clientes_creados")
+    modificado_por_usuario = relationship("Usuario", foreign_keys=[modificado_por_id], back_populates="clientes_modificados")
     movimientos_vigencias = relationship("MovimientoVigencia", back_populates="cliente_rel", 
                                        primaryjoin="Cliente.id == MovimientoVigencia.cliente_id",
                                        cascade="all, delete-orphan")

@@ -25,7 +25,12 @@ target_metadata = Base.metadata
 # ... etc.
 
 def get_url():
-    return os.getenv("DATABASE_URL", "postgresql://Ponce1969:Gallinal2218@postgres:5432/seguros")
+    user = os.getenv("POSTGRES_USER", "postgres")
+    password = os.getenv("POSTGRES_PASSWORD", "postgres")
+    server = os.getenv("POSTGRES_SERVER", "postgres")
+    db = os.getenv("POSTGRES_DB", "seguros")
+    port = os.getenv("POSTGRES_PORT", "5432")
+    return f"postgresql://{user}:{password}@{server}:{port}/{db}"
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
