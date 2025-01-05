@@ -1,8 +1,8 @@
 import sys
-from .main_app import SegurosApp
+from .main_app import AplicacionSeguros
 
 def main():
-    app = SegurosApp(sys.argv)
+    app = AplicacionSeguros(sys.argv)
     sys.exit(app.exec())
 
 if __name__ == '__main__':

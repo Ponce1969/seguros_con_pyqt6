@@ -6,11 +6,13 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import QDate, Qt
 from PyQt6.QtGui import QIcon
-from .views import ClienteForm, MovimientoForm
+from .views.cliente_form import ClienteForm
+from .views.movimiento_form import MovimientoForm
 
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, cliente_api=None):
         super().__init__()
+        self.cliente_api = cliente_api
         self.setWindowTitle("Gestión de Seguros")
         self.setup_ui()
         self.setup_connections()
@@ -111,9 +113,8 @@ class MainWindow(QMainWindow):
 
     def load_clientes(self):
         try:
-            response = requests.get('http://localhost:8000/clientes/')
-            if response.status_code == 200:
-                clientes = response.json()
+            if self.cliente_api:
+                clientes = self.cliente_api.obtener_clientes()
                 self.cliente_selector.clear()
                 self.cliente_selector.addItem("Nuevo Cliente")
                 for cliente in clientes:
@@ -128,9 +129,9 @@ class MainWindow(QMainWindow):
                 QMessageBox.warning(
                     self,
                     "Error",
-                    f"No se pudieron cargar los clientes: {response.status_code}"
+                    "No se ha inicializado el cliente API"
                 )
-        except requests.RequestException as e:
+        except Exception as e:
             QMessageBox.warning(
                 self,
                 "Error",
@@ -144,12 +145,11 @@ class MainWindow(QMainWindow):
             
         try:
             cliente = self.cliente_selector.currentData()
-            response = requests.get(f'http://localhost:8000/clientes/{cliente["id"]}/movimientos/')
-            
-            self.movimientos_list.clear()
-            
-            if response.status_code == 200:
-                movimientos = response.json()
+            if self.cliente_api:
+                movimientos = self.cliente_api.obtener_movimientos_cliente(cliente["id"])
+                
+                self.movimientos_list.clear()
+                
                 movimientos_activos = [m for m in movimientos if not m.get('activo', False)]
                 
                 if movimientos_activos:
@@ -185,19 +185,13 @@ class MainWindow(QMainWindow):
                 QMessageBox.warning(
                     self,
                     "Error",
-                    f"Error al cargar los movimientos: {response.status_code}\n{response.text}"
+                    "No se ha inicializado el cliente API"
                 )
-        except requests.RequestException as e:
-            QMessageBox.warning(
-                self,
-                "Error de Conexión",
-                f"No se pudo conectar con el servidor: {str(e)}"
-            )
         except Exception as e:
             QMessageBox.warning(
                 self,
                 "Error",
-                f"Error inesperado al cargar los movimientos: {str(e)}"
+                f"Error al cargar los movimientos: {str(e)}"
             )
 
     def nuevo_movimiento(self):
@@ -241,22 +235,16 @@ class MainWindow(QMainWindow):
         reply = QMessageBox.question(
             self,
             'Confirmar Baja',
-            '¿Está seguro de que desea eliminar este seguro?\\nEsta acción no se puede deshacer.',
+            '¿Está seguro de que desea eliminar este seguro?\nEsta acción no se puede deshacer.',
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No
         )
         
         if reply == QMessageBox.StandardButton.Yes:
             try:
-                url = f'http://localhost:8000/movimientos/{movimiento_id}'
-                print(f"Intentando eliminar movimiento ID: {movimiento_id}")
-                print(f"URL de la petición: {url}")
-                
-                response = requests.delete(url)
-                print(f"Código de respuesta: {response.status_code}")
-                print(f"Respuesta del servidor: {response.text}")
-                
-                if response.status_code == 200:
+                if self.cliente_api:
+                    self.cliente_api.eliminar_movimiento(movimiento_id)
+                    
                     # Remover el item de la lista inmediatamente
                     row = self.movimientos_list.row(item)
                     self.movimientos_list.takeItem(row)
@@ -268,23 +256,16 @@ class MainWindow(QMainWindow):
                     QMessageBox.information(self, "Éxito", "Seguro eliminado exitosamente")
                     self.movimiento_form.clear_form()
                 else:
-                    error_msg = response.json() if response.headers.get('content-type') == 'application/json' else response.text
                     QMessageBox.warning(
                         self,
                         "Error",
-                        f"Error al eliminar el seguro:\\nCódigo: {response.status_code}\\nMensaje: {error_msg}"
+                        "No se ha inicializado el cliente API"
                     )
-            except requests.RequestException as e:
-                QMessageBox.warning(
-                    self,
-                    "Error de Conexión",
-                    f"Error al conectar con el servidor: {str(e)}"
-                )
             except Exception as e:
                 QMessageBox.warning(
                     self,
                     "Error",
-                    f"Error inesperado al procesar la eliminación: {str(e)}\\nTipo: {type(e)}"
+                    f"Error al eliminar el seguro: {str(e)}"
                 )
 
     def cancelar_movimiento(self):
@@ -325,38 +306,40 @@ class MainWindow(QMainWindow):
 
     def submit_form(self):
         try:
+            if not self.cliente_api:
+                QMessageBox.warning(self, "Error", "No se ha inicializado el cliente API")
+                return
+                
             data = self.cliente_form.get_form_data()
             
             if self.cliente_selector.currentIndex() == 0:
                 # Crear nuevo cliente
-                response = requests.post('http://localhost:8000/clientes/', json=data)
-                if response.status_code == 201:
-                    QMessageBox.information(self, "Éxito", "Cliente creado exitosamente")
-                    self.load_clientes()
-                    # Seleccionar el cliente recién creado
-                    self.cliente_selector.setCurrentIndex(self.cliente_selector.count() - 1)
-                else:
-                    QMessageBox.warning(self, "Error", f"Error al crear cliente: {response.text}")
+                cliente = self.cliente_api.crear_cliente(data)
+                QMessageBox.information(self, "Éxito", "Cliente creado exitosamente")
+                self.load_clientes()
+                # Seleccionar el cliente recién creado
+                self.cliente_selector.setCurrentIndex(self.cliente_selector.count() - 1)
             else:
                 # Actualizar cliente existente
                 cliente = self.cliente_selector.currentData()
-                response = requests.put(f'http://localhost:8000/clientes/{cliente["id"]}', json=data)
-                if response.status_code == 200:
-                    QMessageBox.information(self, "Éxito", "Cliente actualizado exitosamente")
-                    self.load_clientes()
-                    # Mantener seleccionado el cliente editado
-                    for i in range(self.cliente_selector.count()):
-                        item_data = self.cliente_selector.itemData(i)
-                        if item_data and item_data.get('id') == cliente['id']:
-                            self.cliente_selector.setCurrentIndex(i)
-                            break
-                else:
-                    QMessageBox.warning(self, "Error", f"Error al actualizar cliente: {response.text}")
+                cliente_actualizado = self.cliente_api.actualizar_cliente(cliente["id"], data)
+                QMessageBox.information(self, "Éxito", "Cliente actualizado exitosamente")
+                self.load_clientes()
+                # Mantener seleccionado el cliente editado
+                for i in range(self.cliente_selector.count()):
+                    item_data = self.cliente_selector.itemData(i)
+                    if item_data and item_data.get('id') == cliente['id']:
+                        self.cliente_selector.setCurrentIndex(i)
+                        break
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Error al procesar el formulario: {str(e)}")
 
     def delete_cliente(self):
         if self.cliente_selector.currentIndex() == 0:
+            return
+        
+        if not self.cliente_api:
+            QMessageBox.warning(self, "Error", "No se ha inicializado el cliente API")
             return
         
         reply = QMessageBox.question(
@@ -370,24 +353,25 @@ class MainWindow(QMainWindow):
         if reply == QMessageBox.StandardButton.Yes:
             try:
                 cliente = self.cliente_selector.currentData()
-                response = requests.delete(f'http://localhost:8000/clientes/{cliente["id"]}')
-                if response.status_code == 200:
-                    QMessageBox.information(self, "Éxito", "Cliente eliminado exitosamente")
-                    current_index = self.cliente_selector.currentIndex()
-                    self.load_clientes()
-                    # Seleccionar el siguiente cliente o "Nuevo Cliente" si no hay más
-                    if self.cliente_selector.count() > 1:
-                        self.cliente_selector.setCurrentIndex(min(current_index, self.cliente_selector.count() - 1))
-                    else:
-                        self.cliente_selector.setCurrentIndex(0)
+                self.cliente_api.eliminar_cliente(cliente["id"])
+                QMessageBox.information(self, "Éxito", "Cliente eliminado exitosamente")
+                current_index = self.cliente_selector.currentIndex()
+                self.load_clientes()
+                # Seleccionar el siguiente cliente o "Nuevo Cliente" si no hay más
+                if self.cliente_selector.count() > 1:
+                    self.cliente_selector.setCurrentIndex(min(current_index, self.cliente_selector.count() - 1))
                 else:
-                    QMessageBox.warning(self, "Error", f"Error al eliminar cliente: {response.text}")
+                    self.cliente_selector.setCurrentIndex(0)
             except Exception as e:
                 QMessageBox.warning(self, "Error", f"Error al eliminar cliente: {str(e)}")
 
     def guardar_movimiento(self):
         if self.cliente_selector.currentIndex() == 0:
             QMessageBox.warning(self, "Error", "Debe seleccionar un cliente primero")
+            return
+            
+        if not self.cliente_api:
+            QMessageBox.warning(self, "Error", "No se ha inicializado el cliente API")
             return
             
         try:
@@ -408,33 +392,13 @@ class MainWindow(QMainWindow):
                 
             data['cliente_id'] = cliente['id']
             
-            response = requests.post('http://localhost:8000/movimientos/', json=data)
-            if response.status_code == 201:
-                QMessageBox.information(self, "Éxito", "Movimiento guardado exitosamente")
-                self.movimiento_form.clear_form()
-                self.load_movimientos()
-            else:
-                error_msg = response.json() if response.headers.get('content-type') == 'application/json' else response.text
-                QMessageBox.warning(
-                    self,
-                    "Error",
-                    f"Error al guardar movimiento:\n{error_msg}"
-                )
-        except ValueError as e:
-            QMessageBox.warning(
-                self,
-                "Error de Validación",
-                f"Error en los datos del formulario: {str(e)}"
-            )
-        except requests.RequestException as e:
-            QMessageBox.warning(
-                self,
-                "Error de Conexión",
-                f"No se pudo conectar con el servidor: {str(e)}"
-            )
+            movimiento = self.cliente_api.crear_movimiento(cliente['id'], data)
+            QMessageBox.information(self, "Éxito", "Movimiento guardado exitosamente")
+            self.movimiento_form.clear_form()
+            self.load_movimientos()
         except Exception as e:
             QMessageBox.warning(
                 self,
                 "Error",
-                f"Error inesperado al procesar el movimiento: {str(e)}"
+                f"Error al guardar el movimiento: {str(e)}"
             )
