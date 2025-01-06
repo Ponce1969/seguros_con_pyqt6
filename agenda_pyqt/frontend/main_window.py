@@ -38,6 +38,11 @@ class MainWindow(QMainWindow):
         self.setup_movements_tab()
         self.tab_widget.addTab(self.movements_tab, "Movimientos")
         
+        # Pestaña de Corredores
+        self.corredores_tab = QWidget()
+        self.setup_corredores_tab()
+        self.tab_widget.addTab(self.corredores_tab, "Corredores")
+        
         layout.addWidget(self.tab_widget)
         
         # Centrar la ventana
@@ -70,7 +75,7 @@ class MainWindow(QMainWindow):
         self.clients_table.setColumnCount(10)
         self.clients_table.setHorizontalHeaderLabels([
             "ID", "Nombres", "Apellidos", "Documento",
-            "Teléfonos", "Móvil", "Email", "Dirección",
+            "Teléfonos", "Móvil", "Mail", "Dirección",
             "Localidad", "Acciones"
         ])
         
@@ -125,6 +130,45 @@ class MainWindow(QMainWindow):
         # Cargar movimientos
         self.load_movements()
     
+    def setup_corredores_tab(self):
+        """Configura la pestaña de corredores"""
+        layout = QVBoxLayout(self.corredores_tab)
+        layout.setContentsMargins(0, 10, 0, 0)
+        
+        # Barra de herramientas
+        toolbar = QHBoxLayout()
+        toolbar.setSpacing(10)
+        
+        add_button = QPushButton("Agregar Corredor")
+        add_button.setFixedWidth(120)
+        add_button.clicked.connect(self.show_add_corredor_dialog)
+        toolbar.addWidget(add_button)
+        
+        refresh_button = QPushButton("Actualizar")
+        refresh_button.setFixedWidth(120)
+        refresh_button.clicked.connect(self.load_corredores)
+        toolbar.addWidget(refresh_button)
+        
+        toolbar.addStretch()
+        layout.addLayout(toolbar)
+        
+        # Tabla de corredores
+        self.corredores_table = QTableWidget()
+        self.corredores_table.setColumnCount(5)
+        self.corredores_table.setHorizontalHeaderLabels([
+            "ID", "Nombre", "Apellido", "Teléfono", "Acciones"
+        ])
+        
+        self.corredores_table.horizontalHeader().setStretchLastSection(True)
+        self.corredores_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.corredores_table.verticalHeader().setVisible(False)
+        self.corredores_table.setAlternatingRowColors(True)
+        
+        layout.addWidget(self.corredores_table)
+        
+        # Cargar corredores
+        self.load_corredores()
+    
     def center_window(self):
         """Centra la ventana en la pantalla"""
         screen = QApplication.primaryScreen()
@@ -151,7 +195,7 @@ class MainWindow(QMainWindow):
             self.clients_table.setColumnCount(10)
             self.clients_table.setHorizontalHeaderLabels([
                 "ID", "Nombres", "Apellidos", "Documento",
-                "Teléfonos", "Móvil", "Email", "Dirección",
+                "Teléfonos", "Móvil", "Mail", "Dirección",
                 "Localidad", "Acciones"
             ])
 
@@ -170,7 +214,7 @@ class MainWindow(QMainWindow):
                 self.clients_table.setItem(row, 3, QTableWidgetItem(client["documento"]))
                 self.clients_table.setItem(row, 4, QTableWidgetItem(client["telefonos"]))
                 self.clients_table.setItem(row, 5, QTableWidgetItem(client["movil"]))
-                self.clients_table.setItem(row, 6, QTableWidgetItem(client["email"]))
+                self.clients_table.setItem(row, 6, QTableWidgetItem(client["mail"]))
                 self.clients_table.setItem(row, 7, QTableWidgetItem(client["direccion"]))
                 self.clients_table.setItem(row, 8, QTableWidgetItem(client["localidad"]))
                 
@@ -189,7 +233,7 @@ class MainWindow(QMainWindow):
                 
                 self.clients_table.setCellWidget(row, 9, action_widget)
             
-            elif response.status_code == 404:
+            if response.status_code == 404:
                 self.clients_table.setRowCount(1)
                 empty_message = QTableWidgetItem("No hay clientes registrados. Use el botón 'Agregar Cliente' para comenzar.")
                 empty_message.setFlags(Qt.ItemFlag.ItemIsEnabled)  # Hacer la celda de solo lectura
@@ -200,7 +244,7 @@ class MainWindow(QMainWindow):
                 QMessageBox.warning(
                     self,
                     "Error",
-                    f"No se pudieron cargar los clientes. Código de error: {response.status_code}"
+                    "No se pudieron cargar los clientes. Por favor, intente nuevamente."
                 )
         
         except requests.RequestException as e:
@@ -296,6 +340,79 @@ class MainWindow(QMainWindow):
                 f"Error al cargar los movimientos: {str(e)}"
             )
     
+    def load_corredores(self):
+        """Carga la lista de corredores desde el servidor"""
+        try:
+            response = requests.get(
+                "http://localhost:8000/corredores",
+                headers={"Authorization": f"Bearer {self.token}"}
+            )
+            
+            # Limpiar la tabla
+            self.corredores_table.setRowCount(0)
+            
+            if response.status_code == 200:
+                corredores = response.json()
+                if not corredores:  # Si la lista está vacía
+                    self.corredores_table.setRowCount(1)
+                    empty_message = QTableWidgetItem("No hay corredores registrados. Use el botón 'Agregar Corredor' para comenzar.")
+                    empty_message.setFlags(Qt.ItemFlag.ItemIsEnabled)  # Hacer la celda de solo lectura
+                    self.corredores_table.setSpan(0, 0, 1, 5)  # Combinar todas las columnas
+                    self.corredores_table.setItem(0, 0, empty_message)
+                    return
+                
+                for corredor in corredores:
+                    row = self.corredores_table.rowCount()
+                    self.corredores_table.insertRow(row)
+                    
+                    # Añadir datos del corredor
+                    self.corredores_table.setItem(row, 0, QTableWidgetItem(str(corredor["id"])))
+                    self.corredores_table.setItem(row, 1, QTableWidgetItem(corredor["nombre"]))
+                    self.corredores_table.setItem(row, 2, QTableWidgetItem(corredor["apellido"]))
+                    self.corredores_table.setItem(row, 3, QTableWidgetItem(corredor["telefono"]))
+                    
+                    # Botones de acción
+                    action_widget = QWidget()
+                    action_layout = QHBoxLayout(action_widget)
+                    action_layout.setContentsMargins(0, 0, 0, 0)
+                    
+                    edit_button = QPushButton("Editar")
+                    edit_button.clicked.connect(lambda checked, cid=corredor["id"]: self.show_edit_corredor_dialog(cid))
+                    action_layout.addWidget(edit_button)
+                    
+                    delete_button = QPushButton("Eliminar")
+                    delete_button.clicked.connect(lambda checked, cid=corredor["id"]: self.delete_corredor(cid))
+                    action_layout.addWidget(delete_button)
+                    
+                    self.corredores_table.setCellWidget(row, 4, action_widget)
+            
+            elif response.status_code == 404:
+                self.corredores_table.setRowCount(1)
+                empty_message = QTableWidgetItem("No hay corredores registrados. Use el botón 'Agregar Corredor' para comenzar.")
+                empty_message.setFlags(Qt.ItemFlag.ItemIsEnabled)  # Hacer la celda de solo lectura
+                self.corredores_table.setSpan(0, 0, 1, 5)  # Combinar todas las columnas
+                self.corredores_table.setItem(0, 0, empty_message)
+            
+            else:
+                QMessageBox.warning(
+                    self,
+                    "Error",
+                    f"No se pudieron cargar los corredores. Código de error: {response.status_code}"
+                )
+        
+        except requests.RequestException as e:
+            QMessageBox.warning(
+                self,
+                "Error de conexión",
+                "No se pudo conectar con el servidor. Por favor, verifique que el servidor esté funcionando."
+            )
+        except Exception as e:
+            QMessageBox.warning(
+                self,
+                "Error",
+                f"Error al cargar los corredores: {str(e)}"
+            )
+    
     def show_add_client_dialog(self):
         """Muestra el diálogo para agregar un nuevo cliente"""
         dialog = ClientDialog(self.token, parent=self)
@@ -372,6 +489,44 @@ class MainWindow(QMainWindow):
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Error al eliminar movimiento: {str(e)}")
 
+    def show_add_corredor_dialog(self):
+        """Muestra el diálogo para agregar un nuevo corredor"""
+        dialog = CorredorDialog(self.token, parent=self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            self.load_corredores()
+
+    def show_edit_corredor_dialog(self, corredor_id):
+        """Muestra el diálogo para editar un corredor existente"""
+        dialog = CorredorDialog(self.token, corredor_id=corredor_id, parent=self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            self.load_corredores()
+
+    def delete_corredor(self, corredor_id):
+        """Elimina un corredor"""
+        reply = QMessageBox.question(
+            self,
+            "Confirmar eliminación",
+            "¿Está seguro de que desea eliminar este corredor?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            try:
+                response = requests.delete(
+                    f"http://localhost:8000/corredores/{corredor_id}",
+                    headers={"Authorization": f"Bearer {self.token}"}
+                )
+                
+                if response.status_code == 200:
+                    QMessageBox.information(self, "Éxito", "Corredor eliminado correctamente")
+                    self.load_corredores()
+                else:
+                    QMessageBox.warning(self, "Error", "No se pudo eliminar el corredor")
+            
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Error al eliminar corredor: {str(e)}")
+
 class ClientDialog(QDialog):
     def __init__(self, token, client_id=None, parent=None):
         super().__init__(parent)
@@ -401,7 +556,7 @@ class ClientDialog(QDialog):
         self.localidad_input = QLineEdit()
         self.telefonos_input = QLineEdit()
         self.movil_input = QLineEdit()
-        self.email_input = QLineEdit()
+        self.mail_input = QLineEdit()
         self.observaciones_input = QTextEdit()
         
         # Agregar campos al layout
@@ -414,7 +569,7 @@ class ClientDialog(QDialog):
         layout.addRow("Localidad:", self.localidad_input)
         layout.addRow("Teléfonos:", self.telefonos_input)
         layout.addRow("Móvil:", self.movil_input)
-        layout.addRow("Email:", self.email_input)
+        layout.addRow("Mail:", self.mail_input)
         layout.addRow("Observaciones:", self.observaciones_input)
         
         # Botones
@@ -447,7 +602,7 @@ class ClientDialog(QDialog):
                 self.localidad_input.setText(client["localidad"] or "")
                 self.telefonos_input.setText(client["telefonos"])
                 self.movil_input.setText(client["movil"])
-                self.email_input.setText(client["email"])
+                self.mail_input.setText(client["mail"])
                 self.observaciones_input.setPlainText(client["observaciones"] or "")
             else:
                 QMessageBox.warning(self, "Error", "No se pudo cargar los datos del cliente")
@@ -478,7 +633,7 @@ class ClientDialog(QDialog):
                 "localidad": self.localidad_input.text().strip() or None,
                 "telefonos": self.telefonos_input.text().strip(),
                 "movil": self.movil_input.text().strip(),
-                "email": self.email_input.text().strip(),
+                "mail": self.mail_input.text().strip(),
                 "observaciones": self.observaciones_input.toPlainText().strip() or None
             }
             
@@ -748,3 +903,77 @@ class MovementDialog(QDialog):
             QMessageBox.critical(self, "Error", f"Error de conexión: {str(e)}")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Error inesperado: {str(e)}")
+
+class CorredorDialog(QDialog):
+    def __init__(self, token, corredor_id=None, parent=None):
+        super().__init__(parent)
+        self.token = token
+        self.corredor_id = corredor_id
+        self.setup_ui()
+        
+        if corredor_id:
+            self.setWindowTitle("Editar Corredor")
+            self.load_corredor_data()
+        else:
+            self.setWindowTitle("Agregar Corredor")
+
+    def setup_ui(self):
+        """Configura la interfaz del diálogo"""
+        layout = QVBoxLayout()
+        
+        # Formulario de corredor
+        from .ui.views.corredor_form import CorredorForm
+        self.form = CorredorForm()
+        layout.addWidget(self.form)
+        
+        # Botones
+        button_layout = QHBoxLayout()
+        self.save_button = QPushButton("Guardar")
+        self.cancel_button = QPushButton("Cancelar")
+        
+        button_layout.addWidget(self.save_button)
+        button_layout.addWidget(self.cancel_button)
+        
+        layout.addLayout(button_layout)
+        self.setLayout(layout)
+        
+        # Conexiones
+        self.save_button.clicked.connect(self.save_corredor)
+        self.cancel_button.clicked.connect(self.reject)
+
+    def load_corredor_data(self):
+        """Carga los datos del corredor para edición"""
+        try:
+            response = requests.get(
+                f"http://localhost:8000/corredores/{self.corredor_id}",
+                headers={"Authorization": f"Bearer {self.token}"}
+            )
+            response.raise_for_status()
+            corredor_data = response.json()
+            self.form.set_data(corredor_data)
+        except requests.RequestException as e:
+            QMessageBox.critical(self, "Error", f"Error al cargar datos del corredor: {str(e)}")
+
+    def save_corredor(self):
+        """Guarda los datos del corredor"""
+        try:
+            data = self.form.get_data()
+            
+            if self.corredor_id:  # Actualizar corredor existente
+                response = requests.put(
+                    f"http://localhost:8000/corredores/{self.corredor_id}",
+                    json=data,
+                    headers={"Authorization": f"Bearer {self.token}"}
+                )
+            else:  # Crear nuevo corredor
+                response = requests.post(
+                    "http://localhost:8000/corredores/",
+                    json=data,
+                    headers={"Authorization": f"Bearer {self.token}"}
+                )
+            
+            response.raise_for_status()
+            QMessageBox.information(self, "Éxito", "Corredor guardado exitosamente")
+            self.accept()
+        except requests.RequestException as e:
+            QMessageBox.critical(self, "Error", f"Error al guardar corredor: {str(e)}")

@@ -115,12 +115,12 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
         str: Token JWT codificado
     """
     to_encode = data.copy()
-    expire = datetime.utcnow() + (
+    expire = datetime.now(datetime.timezone.utc) + (
         expires_delta if expires_delta else timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     )
     to_encode.update({
         "exp": expire,
-        "iat": datetime.utcnow()  # Tiempo de emisión del token
+        "iat": datetime.now(datetime.timezone.utc)  # Tiempo de emisión del token
     })
     
     try:
@@ -164,7 +164,7 @@ async def get_current_user(
             
         # Verificar tiempo de expiración
         exp = payload.get("exp")
-        if not exp or datetime.utcfromtimestamp(exp) < datetime.utcnow():
+        if not exp or datetime.fromtimestamp(exp, tz=datetime.timezone.utc) < datetime.now(datetime.timezone.utc):
             raise credentials_exception
             
     except JWTError:

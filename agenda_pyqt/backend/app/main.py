@@ -37,7 +37,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Incluir el router principal de la API v1
+# Incluir el router principal de la API v1 (incluye corredores)
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
 # Incluir routers adicionales
@@ -49,5 +49,5 @@ def read_root():
     return {
         "app": settings.PROJECT_NAME,
         "version": settings.VERSION,
-        "status": "running"
+        "docs_url": "/docs"
     }

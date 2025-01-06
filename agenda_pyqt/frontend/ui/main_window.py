@@ -2,12 +2,14 @@ import requests
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QComboBox, QMessageBox, QTabWidget,
-    QListWidget, QListWidgetItem, QSizePolicy
+    QListWidget, QListWidgetItem, QSizePolicy, QLabel, QTableWidget, QTableWidgetItem, 
+    QFormLayout, QLineEdit, QDateEdit, QTextEdit, QHeaderView, QDialog
 )
 from PyQt6.QtCore import QDate, Qt
 from PyQt6.QtGui import QIcon
 from .views.cliente_form import ClienteForm
 from .views.movimiento_form import MovimientoForm
+from .views.corredor_form import CorredorForm
 
 class MainWindow(QMainWindow):
     def __init__(self, cliente_api=None):
@@ -60,7 +62,7 @@ class MainWindow(QMainWindow):
         cliente_layout.addLayout(selector_layout)
         
         # Formulario de cliente
-        self.cliente_form = ClienteForm()
+        self.cliente_form = ClienteForm(cliente_api=self.cliente_api)
         cliente_layout.addWidget(self.cliente_form)
         
         self.tab_widget.addTab(cliente_tab, "Clientes")
@@ -97,6 +99,24 @@ class MainWindow(QMainWindow):
         
         self.tab_widget.addTab(movimiento_tab, "Movimientos")
 
+        # Pestaña de Corredores
+        corredores_tab = QWidget()
+        corredores_layout = QVBoxLayout(corredores_tab)
+        
+        # Formulario de corredor
+        self.corredor_form = CorredorForm()
+        corredores_layout.addWidget(self.corredor_form)
+        
+        # Botones para corredores
+        corredores_buttons = QHBoxLayout()
+        self.nuevo_corredor_button = QPushButton("Nuevo Corredor")
+        self.guardar_corredor_button = QPushButton("Guardar Corredor")
+        corredores_buttons.addWidget(self.nuevo_corredor_button)
+        corredores_buttons.addWidget(self.guardar_corredor_button)
+        corredores_layout.addLayout(corredores_buttons)
+        
+        self.tab_widget.addTab(corredores_tab, "Corredores")
+
     def setup_connections(self):
         self.cliente_selector.currentIndexChanged.connect(self.on_cliente_selected)
         self.nuevo_cliente_button.clicked.connect(self.nuevo_cliente)
@@ -110,6 +130,9 @@ class MainWindow(QMainWindow):
         self.guardar_movimiento_button.clicked.connect(self.guardar_movimiento)
         self.cancelar_movimiento_button.clicked.connect(self.cancelar_movimiento)
         self.movimientos_list.itemClicked.connect(self.on_movimiento_selected)
+
+        self.nuevo_corredor_button.clicked.connect(self.nuevo_corredor)
+        self.guardar_corredor_button.clicked.connect(self.guardar_corredor)
 
     def load_clientes(self):
         try:
@@ -402,3 +425,22 @@ class MainWindow(QMainWindow):
                 "Error",
                 f"Error al guardar el movimiento: {str(e)}"
             )
+
+    def nuevo_corredor(self):
+        self.corredor_form.clear_form()
+        self.corredor_form.setEnabled(True)
+
+    def guardar_corredor(self):
+        try:
+            if not self.cliente_api:
+                QMessageBox.warning(self, "Error", "No se ha inicializado el cliente API")
+                return
+                
+            data = self.corredor_form.get_form_data()
+            
+            # Crear nuevo corredor
+            corredor = self.cliente_api.crear_corredor(data)
+            QMessageBox.information(self, "Éxito", "Corredor creado exitosamente")
+            self.corredor_form.clear_form()
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"Error al procesar el formulario: {str(e)}")

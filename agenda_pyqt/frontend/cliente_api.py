@@ -12,6 +12,7 @@ class ClienteAPI:
     def __init__(self):
         self.base_url = "http://localhost:8000"  # URL base sin el prefijo de la API
         self.token: Optional[str] = None
+        self.session = requests.Session()
         
     def establecer_token(self, token: str):
         """Establece el token de autenticación"""
@@ -23,6 +24,10 @@ class ClienteAPI:
         if self.token:
             headers["Authorization"] = f"Bearer {self.token}"
         return headers
+
+    def _make_request(self, method: str, url: str, **kwargs):
+        response = self.session.request(method, url, headers=self.obtener_headers(), **kwargs)
+        return response
 
     def iniciar_sesion(self, email: str, password: str) -> Dict[str, Any]:
         """
@@ -93,13 +98,29 @@ class ClienteAPI:
     def crear_cliente(self, datos_cliente):
         """Crea un nuevo cliente"""
         try:
+            url = urljoin(self.base_url, "/api/v1/clientes/")
+            headers = self.obtener_headers()
+            logger.debug(f"Creando cliente en URL: {url}")
+            logger.debug(f"Headers: {headers}")
+            logger.debug(f"Datos del cliente: {datos_cliente}")
+            
             response = requests.post(
-                urljoin(self.base_url, "/api/v1/clientes/"),
-                headers=self.obtener_headers(),
+                url,
+                headers=headers,
                 json=datos_cliente
             )
+            logger.debug(f"Código de respuesta: {response.status_code}")
+            logger.debug(f"Respuesta: {response.text}")
+            
             response.raise_for_status()
             return response.json()
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 401:
+                logger.error("Error de autenticación al crear cliente. Token inválido o expirado.")
+                raise Exception("Error de autenticación. Por favor, inicie sesión nuevamente.")
+            else:
+                logger.error(f"Error HTTP al crear cliente: {str(e)}")
+                raise
         except Exception as e:
             logger.error(f"Error en crear_cliente: {str(e)}")
             raise
@@ -183,4 +204,60 @@ class ClienteAPI:
             return True
         except Exception as e:
             logger.error(f"Error en eliminar_movimiento: {str(e)}")
+            raise
+
+    def obtener_corredores(self):
+        """Obtiene la lista de corredores."""
+        try:
+            url = f"{self.base_url}/api/v1/corredores/"
+            response = self._make_request("GET", url)
+            if response.status_code == 200:
+                return response.json()
+            return []
+        except Exception as e:
+            logger.error(f"Error en obtener_corredores: {str(e)}")
+            return []
+
+    def crear_corredor(self, corredor_data):
+        """Crea un nuevo corredor."""
+        try:
+            url = f"{self.base_url}/api/v1/corredores/"
+            response = self._make_request("POST", url, json=corredor_data)
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            logger.error(f"Error en crear_corredor: {str(e)}")
+            raise
+
+    def obtener_corredor(self, numero):
+        """Obtiene un corredor específico por su número."""
+        try:
+            url = f"{self.base_url}/api/v1/corredores/{numero}"
+            response = self._make_request("GET", url)
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            logger.error(f"Error en obtener_corredor: {str(e)}")
+            raise
+
+    def actualizar_corredor(self, numero, corredor_data):
+        """Actualiza un corredor existente."""
+        try:
+            url = f"{self.base_url}/api/v1/corredores/{numero}"
+            response = self._make_request("PUT", url, json=corredor_data)
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            logger.error(f"Error en actualizar_corredor: {str(e)}")
+            raise
+
+    def eliminar_corredor(self, numero):
+        """Elimina un corredor."""
+        try:
+            url = f"{self.base_url}/api/v1/corredores/{numero}"
+            response = self._make_request("DELETE", url)
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            logger.error(f"Error en eliminar_corredor: {str(e)}")
             raise

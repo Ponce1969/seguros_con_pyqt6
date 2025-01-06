@@ -50,10 +50,54 @@ class ClienteBase(BaseModel):
     observaciones: Optional[str] = None
 
 class ClienteCreate(ClienteBase):
-    pass
+    """
+    Esquema para la creación de un cliente.
+    Incluye validaciones específicas para la creación.
+    """
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "nombres": "Juan Carlos",
+                "apellidos": "Pérez González",
+                "tipo_documento": "DNI",
+                "documento": "12345678",
+                "fecha_nacimiento": "1990-01-01T00:00:00",
+                "direccion": "Av. Principal 123",
+                "localidad": "Ciudad Central",
+                "telefonos": "555-1234",
+                "movil": "555-5678",
+                "email": "juan.perez@example.com",
+                "corredor": 1,
+                "observaciones": "Cliente preferencial"
+            }
+        }
 
 class ClienteUpdate(ClienteBase):
-    pass
+    """
+    Esquema para la actualización de un cliente.
+    Hace todos los campos opcionales para permitir actualizaciones parciales.
+    """
+    nombres: Optional[str] = None
+    apellidos: Optional[str] = None
+    tipo_documento: Optional[str] = None
+    documento: Optional[str] = None
+    fecha_nacimiento: Optional[datetime] = None
+    direccion: Optional[str] = None
+    localidad: Optional[str] = None
+    telefonos: Optional[str] = None
+    movil: Optional[str] = None
+    email: Optional[EmailStr] = None
+    corredor: Optional[int] = None
+    observaciones: Optional[str] = None
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "direccion": "Nueva Dirección 456",
+                "telefonos": "555-9876",
+                "email": "nuevo.email@example.com"
+            }
+        }
 
 class Cliente(ClienteBase):
     id: UUID

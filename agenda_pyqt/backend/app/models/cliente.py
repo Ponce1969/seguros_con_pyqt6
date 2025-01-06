@@ -44,7 +44,7 @@ class Cliente(Base):
     mail = Column(String(100), nullable=False, unique=True, index=True)
     
     # Datos del negocio
-    corredor = Column(Integer, ForeignKey("corredores.numero"))
+    corredor = Column(Integer, ForeignKey("corredores.numero"), nullable=True)
     observaciones = Column(Text)
     
     # Campos de auditoría
