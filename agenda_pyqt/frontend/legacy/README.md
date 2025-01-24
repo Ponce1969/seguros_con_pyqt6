@@ -1,22 +1,25 @@
-# Legacy Code Directory
+# Código Legacy - No en Uso
 
-Este directorio contiene código legacy que ha sido reemplazado por versiones más modernas y mantenibles.
+Este directorio contiene código antiguo que ya no está en uso en la aplicación. Se mantiene temporalmente como referencia durante la migración a la nueva estructura.
 
-## Archivos
+## Estructura
 
-### Ventana Principal
-- `main_window.py.legacy`: Versión anterior de la ventana principal que contenía toda la lógica en un solo archivo. 
-  - Reemplazado por: `frontend/main_window.py` y los componentes modulares en `frontend/views/components/`
-  - Fecha de deprecación: 19/01/2025
-  - Razón: Mejora de la arquitectura para hacerla más modular y mantenible
+- `layouts/`: Antiguos formularios y layouts de la interfaz (reemplazados por `frontend/views/components/dialogs/`)
+- `ui/`: Código UI antiguo (reemplazado por la nueva estructura en `frontend/views/components/`)
+- `ventanas/`: Ventanas antiguas (reemplazadas por los nuevos componentes)
 
-### Ventanas de Backup
-- `ventana_inicio_sesion.py`: Versión anterior de la ventana de inicio de sesión
-- `ventana_primera_ejecucion.py`: Versión anterior de la ventana de primera ejecución
-- `ventana_principal.py`: Versión anterior de la ventana principal
-- `__init__.py`: Archivo de inicialización del módulo de ventanas
-  - Reemplazados por: Las nuevas implementaciones en `frontend/views/`
-  - Fecha de deprecación: 20/01/2025
-  - Razón: Reorganización de la arquitectura para mejor modularidad y mantenibilidad
+## Nueva Estructura (En Uso)
 
-Este código se mantiene como referencia histórica y para consultar funcionalidades que puedan no haber sido migradas completamente.
+El código actual en uso se encuentra en:
+```
+frontend/
+└── views/
+    └── components/
+        ├── dialogs/    (diálogos modales: clientes, corredores, movimientos)
+        └── tabs/       (pestañas de la interfaz principal)
+```
+
+## Nota Importante
+
+Este código se mantiene temporalmente solo como referencia y será eliminado en el futuro. 
+NO usar este código para nuevos desarrollos. Usar siempre los componentes de la nueva estructura.

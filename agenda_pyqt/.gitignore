@@ -52,6 +52,9 @@ logs/
 frontend/views/layouts/
 backend/check_db.py
 
+# Código legacy
+frontend/legacy/
+
 # Sistema operativo
 .DS_Store
 Thumbs.db
