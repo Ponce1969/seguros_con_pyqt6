@@ -1,4 +1,6 @@
-from PyQt6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox
+from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QLabel,
+                            QLineEdit, QPushButton, QMessageBox, QSizePolicy,
+                            QApplication)
 from PyQt6.QtCore import Qt
 import requests
 import logging
@@ -63,16 +65,19 @@ class LoginWindow(QMainWindow):
         
         try:
             response = requests.post(
-                'http://localhost:8000/users/token',
+                'http://localhost:8000/api/v1/iniciar-sesion/token',
                 data={'username': email, 'password': password}
             )
             
             if response.status_code == 200:
                 token_data = response.json()
-                self.app.set_auth_token(token_data['access_token'])
+                token = token_data['access_token']
+                self.app.set_auth_token(token)
+                logger.debug(f"Token obtenido exitosamente: {token[:10]}...")  # Solo para debug
             else:
                 error_msg = response.json().get('detail', 'Error desconocido')
                 QMessageBox.warning(self, 'Error de Login', error_msg)
+                logger.error(f"Error en login: {error_msg}")
                 
         except requests.exceptions.ConnectionError:
             QMessageBox.critical(
@@ -80,9 +85,11 @@ class LoginWindow(QMainWindow):
                 'Error de Conexión',
                 'No se pudo conectar con el servidor. Por favor, verifica que el servidor esté funcionando.'
             )
+            logger.error("Error de conexión al servidor")
         except Exception as e:
             QMessageBox.critical(
                 self,
                 'Error',
                 f'Error inesperado: {str(e)}'
             )
+            logger.error(f"Error inesperado en login: {str(e)}")

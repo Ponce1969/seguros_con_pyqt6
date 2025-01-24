@@ -109,6 +109,57 @@ class Cliente(ClienteBase):
     class Config:
         from_attributes = True
 
+# Esquemas para Corredor
+class CorredorBase(BaseModel):
+    """Esquema base para Corredor"""
+    nombres: Optional[str] = None  # Puede ser vacío para empresas
+    apellidos: str  # Apellidos o nombre de empresa
+    documento: str
+    direccion: str
+    localidad: str
+    telefonos: Optional[str] = None
+    movil: Optional[str] = None
+    mail: str
+    observaciones: Optional[str] = None
+
+class CorredorCreate(CorredorBase):
+    """Esquema para la creación de un corredor"""
+    numero: int  # Número asignado por el administrador
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "numero": 1,
+                "nombres": "Juan",
+                "apellidos": "Pérez",
+                "documento": "12345678",
+                "direccion": "Av. Principal 123",
+                "localidad": "Ciudad Central",
+                "telefonos": "555-1234",
+                "movil": "555-5678",
+                "mail": "juan.perez@example.com",
+                "observaciones": "Corredor principal"
+            }
+        }
+
+class CorredorUpdate(CorredorBase):
+    """Esquema para la actualización de un corredor"""
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "direccion": "Nueva Dirección 456",
+                "telefonos": "555-9876",
+                "mail": "nuevo.email@example.com"
+            }
+        }
+
+class Corredor(CorredorBase):
+    """Esquema para la respuesta de corredor"""
+    numero: int
+
+    class Config:
+        from_attributes = True
+
 # Esquemas para Token
 class Token(BaseModel):
     access_token: str
