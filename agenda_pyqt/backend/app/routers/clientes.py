@@ -4,6 +4,7 @@ from typing import List
 from uuid import UUID
 import logging
 import traceback
+from sqlalchemy import or_
 
 from ..db.session import SessionLocal
 from ..models.cliente import Cliente
@@ -69,6 +70,73 @@ def read_clientes(
         logger.error(f"Error al obtener clientes: {str(e)}")
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Error al obtener los clientes: {str(e)}")
+
+@router.get("/por-corredor/{corredor_numero}", response_model=List[schemas.ClientePorCorredor])
+def read_clientes_por_corredor(
+    corredor_numero: int,
+    skip: int = 0,
+    limit: int = 10,
+    search: str = None,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_active_user)
+):
+    """
+    Obtiene la lista de clientes asociados a un corredor específico.
+    Los clientes se ordenan por fecha de modificación descendente para mostrar los más recientes primero.
+    
+    Parámetros:
+    - corredor_numero: Número del corredor
+    - skip: Número de registros a saltar (para paginación)
+    - limit: Número máximo de registros a devolver
+    - search: Texto para buscar en nombres, apellidos, documento o email
+    """
+    try:
+        logger.debug(f"Usuario {current_user.email} buscando clientes para el corredor: {corredor_numero}")
+        logger.debug(f"Parámetros: skip={skip}, limit={limit}, search={search}")
+        
+        # Construir la query base
+        query = db.query(Cliente).filter(Cliente.corredor == corredor_numero)
+        
+        # Agregar búsqueda si se especifica
+        if search:
+            search = f"%{search}%"
+            query = query.filter(
+                or_(
+                    Cliente.nombres.ilike(search),
+                    Cliente.apellidos.ilike(search),
+                    Cliente.numero_documento.ilike(search),
+                    Cliente.mail.ilike(search)
+                )
+            )
+        
+        # Log de la query SQL
+        logger.debug(f"Query SQL: {query.statement}")
+        
+        # Ejecutar la query con orden y límites
+        clientes = query.order_by(Cliente.fecha_modificacion.desc())\
+            .offset(skip)\
+            .limit(limit)\
+            .all()
+        
+        # Obtener el total de registros para esta búsqueda
+        total = query.count()
+        
+        if not clientes:
+            logger.debug(f"No se encontraron clientes para el corredor {corredor_numero}")
+            return []
+            
+        logger.debug(f"Se encontraron {len(clientes)} clientes para el corredor {corredor_numero}")
+        logger.debug(f"Total de registros sin límite: {total}")
+        
+        return clientes
+        
+    except Exception as e:
+        logger.error(f"Error al buscar clientes por corredor: {str(e)}")
+        logger.error(f"Detalles del error: {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al buscar clientes para el corredor {corredor_numero}: {str(e)}"
+        )
 
 @router.get("/{cliente_id}", response_model=schemas.Cliente)
 def read_cliente(

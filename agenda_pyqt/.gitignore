@@ -49,8 +49,7 @@ logs/
 
 # Archivos sensibles
 .env
-.env.local
-.env.*.local
+frontend/views/layouts/
 backend/check_db.py
 
 # Sistema operativo

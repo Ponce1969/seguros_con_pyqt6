@@ -71,3 +71,15 @@ class Cliente(ClienteBase):
     movimientos_vigencias: List[MovimientoVigencia] = []
 
     model_config = ConfigDict(from_attributes=True)
+
+class ClientePorCorredor(BaseModel):
+    """Schema para mostrar información básica del cliente en listados por corredor"""
+    id: UUID
+    numero_cliente: int
+    nombres: str
+    apellidos: str
+    corredor: int
+    fecha_modificacion: datetime
+
+    class Config:
+        from_attributes = True
