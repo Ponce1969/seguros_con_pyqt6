@@ -129,36 +129,70 @@ class MovimientoDialog(QDialog):
 
     def on_corredor_changed(self, index):
         """Maneja el cambio de selección en el combobox de corredor"""
-        corredor_id = self.corredor_input.currentData()
-        logger.debug(f"Corredor seleccionado: {corredor_id}")
-        if corredor_id:
-            logger.debug(f"Intentando cargar clientes para corredor {corredor_id}")
-            self.load_clientes_por_corredor(corredor_id)
-        else:
-            logger.debug("No hay corredor seleccionado, limpiando lista de clientes")
-            self.cliente_input.clear()
-            self.cliente_input.addItem("Seleccione un corredor primero", None)
+        # Limpiar el combo de clientes y el campo de búsqueda
+        self.cliente_input.clear()
+        self.cliente_search.clear()
+        
+        if index <= 0:  # No hay corredor seleccionado
+            return
+            
+        corredor_numero = self.corredor_input.itemData(index)
+        if not corredor_numero:
+            return
+            
+        try:
+            # Cargar los primeros 10 clientes del corredor
+            self.load_clientes_por_corredor(corredor_numero)
+        except Exception as e:
+            logger.error(f"Error al cargar clientes iniciales: {str(e)}")
+            QMessageBox.critical(self, "Error", f"Error al cargar clientes: {str(e)}")
 
     def on_cliente_search_changed(self, text):
         """Maneja el cambio en el campo de búsqueda"""
+        # Reiniciar el timer cada vez que el texto cambia
         self.cliente_search_timer.stop()
-        if len(text) >= 3 or not text:  # Buscar si hay 3 o más caracteres o si se borró todo
-            self.cliente_search_timer.start(300)  # Esperar 300ms antes de buscar
+        # Iniciar el timer con 300ms de retraso
+        self.cliente_search_timer.start(300)
 
     def search_clientes(self):
         """Realiza la búsqueda de clientes"""
-        corredor_id = self.corredor_input.currentData()
-        if not corredor_id:
+        search_text = self.cliente_search.text().strip()
+        corredor_index = self.corredor_input.currentIndex()
+        
+        if corredor_index == -1:
+            QMessageBox.warning(self, "Error", "Por favor seleccione un corredor primero")
             return
             
-        search_text = self.cliente_search.text().strip()
-        self.load_clientes_por_corredor(corredor_id, search=search_text)
+        corredor_numero = self.corredor_input.itemData(corredor_index)
+        if not corredor_numero:
+            logger.error("No se pudo obtener el número de corredor")
+            return
+            
+        try:
+            self.load_clientes_por_corredor(corredor_numero, search=search_text)
+        except Exception as e:
+            logger.error(f"Error al buscar clientes: {str(e)}")
+            QMessageBox.critical(self, "Error", f"Error al buscar clientes: {str(e)}")
 
     def load_all_clientes(self):
         """Carga todos los clientes del corredor seleccionado"""
-        corredor_id = self.corredor_input.currentData()
-        if corredor_id:
-            self.load_clientes_por_corredor(corredor_id, limit=1000)
+        corredor_index = self.corredor_input.currentIndex()
+        
+        if corredor_index == -1:
+            QMessageBox.warning(self, "Error", "Por favor seleccione un corredor primero")
+            return
+            
+        corredor_numero = self.corredor_input.itemData(corredor_index)
+        if not corredor_numero:
+            logger.error("No se pudo obtener el número de corredor")
+            return
+            
+        try:
+            # Cargar todos los clientes (sin límite)
+            self.load_clientes_por_corredor(corredor_numero, limit=None)
+        except Exception as e:
+            logger.error(f"Error al cargar todos los clientes: {str(e)}")
+            QMessageBox.critical(self, "Error", f"Error al cargar todos los clientes: {str(e)}")
 
     def load_clientes_por_corredor(self, corredor_numero, search=None, limit=10):
         """Carga la lista de clientes para un corredor específico"""
@@ -166,7 +200,9 @@ class MovimientoDialog(QDialog):
             logger.debug(f"Realizando petición GET para corredor {corredor_numero}")
             logger.debug(f"Parámetros: search={search}, limit={limit}")
             
-            params = {"limit": limit}
+            params = {}
+            if limit:
+                params["limit"] = limit
             if search:
                 params["search"] = search
             
@@ -187,23 +223,42 @@ class MovimientoDialog(QDialog):
             response.raise_for_status()
             clientes = response.json()
             
-            logger.debug(f"Clientes recibidos: {len(clientes)}")
+            # Debug para ver la estructura de la respuesta
+            logger.debug(f"Estructura de la respuesta: {clientes}")
             
+            # Limpiar el combo actual
             self.cliente_input.clear()
-            self.cliente_input.addItem("Seleccione un cliente", None)
             
+            # Agregar los clientes al combo
             for cliente in clientes:
-                nombre_completo = f"{cliente['apellidos']}, {cliente.get('nombres', '')} ({cliente['numero_cliente']})"
-                logger.debug(f"Agregando cliente: {nombre_completo}")
-                self.cliente_input.addItem(
-                    nombre_completo,
-                    cliente['id']
-                )
+                try:
+                    # Obtener los campos de manera segura usando .get()
+                    apellidos = cliente.get('apellidos', '')
+                    nombres = cliente.get('nombres', '')
+                    tipo_documento = cliente.get('tipo_documento', '')
+                    nro_documento = cliente.get('nro_documento', '')  # Cambiado de 'documento' a 'nro_documento'
+                    mail = cliente.get('mail', '')
+                    
+                    # Crear un texto descriptivo con la información del cliente
+                    display_text = f"{apellidos}, {nombres}"
+                    if nro_documento:
+                        display_text += f" - {tipo_documento}: {nro_documento}"
+                    if mail:
+                        display_text += f" ({mail})"
+                        
+                    self.cliente_input.addItem(display_text, cliente.get('id'))
+                    
+                except Exception as e:
+                    logger.error(f"Error al procesar cliente: {cliente}")
+                    logger.error(f"Error: {str(e)}")
+                    continue
                 
-        except requests.RequestException as e:
-            logger.error(f"Error al cargar clientes del corredor {corredor_numero}: {str(e)}")
-            logger.error(f"Detalles del error: {traceback.format_exc()}")
-            QMessageBox.warning(self, "Error", f"No se pudieron cargar los clientes para este corredor: {str(e)}")
+            if self.cliente_input.count() == 0:
+                self.cliente_input.addItem("No se encontraron clientes", None)
+                
+        except Exception as e:
+            logger.error(f"Error al cargar clientes: {str(e)}")
+            raise
 
     def load_corredores(self):
         """Carga la lista de corredores para el combo box"""
@@ -219,18 +274,12 @@ class MovimientoDialog(QDialog):
             self.corredor_input.addItem("Seleccione un corredor", None)
             
             for corredor in corredores:
-                self.corredor_input.addItem(
-                    f"{corredor['apellidos']}, {corredor.get('nombres', '')} ({corredor['numero']})",
-                    corredor['numero']
-                )
-            
-            # Limpiar la lista de clientes hasta que se seleccione un corredor
-            self.cliente_input.clear()
-            self.cliente_input.addItem("Seleccione un corredor primero", None)
+                display_text = f"{corredor['apellidos']}, {corredor.get('nombres', '')} ({corredor['numero']})"
+                self.corredor_input.addItem(display_text, corredor['numero'])
                 
         except requests.RequestException as e:
             logger.error(f"Error al cargar corredores: {str(e)}")
-            QMessageBox.warning(self, "Error", "No se pudieron cargar los corredores")
+            QMessageBox.critical(self, "Error", f"Error al cargar corredores: {str(e)}")
 
     def load_movement_data(self):
         """Carga los datos del movimiento para edición"""

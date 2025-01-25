@@ -19,19 +19,28 @@ class ClientesTab(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(10, 10, 10, 10)
         
-        # Título
-        title = QWidget()
-        title_layout = QHBoxLayout(title)
-        title_layout.setContentsMargins(0, 0, 0, 10)
-        
         # Barra de herramientas
         toolbar = QHBoxLayout()
         toolbar.setSpacing(10)
         
+        # Botones principales
         add_button = QPushButton("Agregar Cliente")
         add_button.setFixedWidth(120)
         add_button.clicked.connect(self.show_add_client_dialog)
         toolbar.addWidget(add_button)
+        
+        # Botones de acción (desactivados por defecto)
+        self.edit_button = QPushButton("Editar")
+        self.edit_button.setFixedWidth(80)
+        self.edit_button.setEnabled(False)
+        self.edit_button.clicked.connect(self.edit_selected_client)
+        toolbar.addWidget(self.edit_button)
+        
+        self.delete_button = QPushButton("Eliminar")
+        self.delete_button.setFixedWidth(80)
+        self.delete_button.setEnabled(False)
+        self.delete_button.clicked.connect(self.delete_selected_client)
+        toolbar.addWidget(self.delete_button)
         
         refresh_button = QPushButton("Actualizar Lista")
         refresh_button.setFixedWidth(120)
@@ -51,17 +60,17 @@ class ClientesTab(QWidget):
     def setup_table(self):
         """Configura la tabla de clientes"""
         self.clients_table = QTableWidget()
-        self.clients_table.setColumnCount(12)
+        self.clients_table.setColumnCount(11)  # Eliminada la columna de acciones
         self.clients_table.setHorizontalHeaderLabels([
             "ID", "Nombres", "Apellidos", "Tipo Doc.", "Documento",
             "Fecha Nac.", "Teléfonos", "Móvil", "Email", "Dirección",
-            "Localidad", "Acciones"
+            "Localidad"
         ])
         
         # Configurar la tabla
         header = self.clients_table.horizontalHeader()
         header.setStretchLastSection(True)
-        for i in range(11):  # Todas las columnas excepto Acciones
+        for i in range(11):
             header.setSectionResizeMode(i, header.ResizeMode.ResizeToContents)
         
         self.clients_table.verticalHeader().setVisible(False)
@@ -69,7 +78,10 @@ class ClientesTab(QWidget):
         self.clients_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.clients_table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
         self.clients_table.setMinimumHeight(300)
-
+        
+        # Conectar evento de selección
+        self.clients_table.itemSelectionChanged.connect(self.on_selection_changed)
+        
     def load_clients(self):
         """Carga los clientes desde la API"""
         try:
@@ -92,7 +104,7 @@ class ClientesTab(QWidget):
                 empty_message = QTableWidgetItem("No hay clientes registrados")
                 empty_message.setFlags(Qt.ItemFlag.ItemIsEnabled)
                 empty_message.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                self.clients_table.setSpan(0, 0, 1, 12)
+                self.clients_table.setSpan(0, 0, 1, 11)
                 self.clients_table.setItem(0, 0, empty_message)
                 return
             
@@ -140,28 +152,36 @@ class ClientesTab(QWidget):
             if col in [0, 3, 5]:  # ID, Tipo Doc y Fecha Nac centrados
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.clients_table.setItem(row, col, item)
+    
+    def on_selection_changed(self):
+        """Maneja el cambio de selección en la tabla"""
+        selected_rows = self.clients_table.selectedItems()
+        has_selection = len(selected_rows) > 0
         
-        # Botones de acción
-        action_widget = QWidget()
-        action_layout = QHBoxLayout(action_widget)
-        action_layout.setContentsMargins(5, 0, 5, 0)
-        action_layout.setSpacing(5)
-        
-        edit_button = QPushButton("Editar")
-        edit_button.setFixedWidth(60)
-        edit_button.setStyleSheet("background-color: #4CAF50; color: white;")
-        client_id = cliente["id"]
-        edit_button.clicked.connect(lambda checked, id=client_id: self.show_edit_client_dialog(id))
-        action_layout.addWidget(edit_button)
-        
-        delete_button = QPushButton("Eliminar")
-        delete_button.setFixedWidth(60)
-        delete_button.setStyleSheet("background-color: #f44336; color: white;")
-        delete_button.clicked.connect(lambda checked, id=client_id: self.delete_client(id))
-        action_layout.addWidget(delete_button)
-        
-        self.clients_table.setCellWidget(row, 11, action_widget)
-
+        # Activar/desactivar botones según la selección
+        self.edit_button.setEnabled(has_selection)
+        self.delete_button.setEnabled(has_selection)
+    
+    def get_selected_client_id(self):
+        """Obtiene el ID del cliente seleccionado"""
+        selected_rows = self.clients_table.selectedItems()
+        if not selected_rows:
+            return None
+        # El ID está en la primera columna
+        return selected_rows[0].text()
+    
+    def edit_selected_client(self):
+        """Edita el cliente seleccionado"""
+        client_id = self.get_selected_client_id()
+        if client_id:
+            self.show_edit_client_dialog(client_id)
+    
+    def delete_selected_client(self):
+        """Elimina el cliente seleccionado"""
+        client_id = self.get_selected_client_id()
+        if client_id:
+            self.delete_client(client_id)
+    
     def show_add_client_dialog(self):
         """Muestra el diálogo para agregar un nuevo cliente"""
         dialog = ClienteDialog(parent=self, token=self.token)

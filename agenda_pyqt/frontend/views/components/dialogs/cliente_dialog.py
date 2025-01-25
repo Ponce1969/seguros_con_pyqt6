@@ -39,12 +39,18 @@ class ClienteDialog(QDialog):
         self.mail_input = QLineEdit()
         self.direccion_input = QLineEdit()
         self.localidad_input = QLineEdit()
-        self.corredor_input = QComboBox()
+        
+        # Corredor input - QComboBox para nuevo cliente, QLineEdit para edición
+        if self.client_id:
+            self.corredor_input = QLineEdit()
+            self.corredor_input.setReadOnly(True)  # No se puede editar
+            self.corredor_input.setStyleSheet("QLineEdit { background-color: #f0f0f0; }")  # Fondo gris para indicar que no es editable
+        else:
+            self.corredor_input = QComboBox()
+            self.load_corredores()  # Solo cargar corredores si es nuevo cliente
+            
         self.observaciones_input = QTextEdit()
         self.observaciones_input.setMaximumHeight(100)
-
-        # Cargar lista de corredores
-        self.load_corredores()
 
         # Agregar campos al layout
         layout.addRow("Nombres:", self.nombres_input)
@@ -122,81 +128,88 @@ class ClienteDialog(QDialog):
             self.localidad_input.setText(cliente.get("localidad", ""))
             self.observaciones_input.setText(cliente.get("observaciones", ""))
             
-            # Seleccionar el corredor en el combo box
-            if cliente.get("corredor"):  
-                index = self.corredor_input.findData(cliente["corredor"])
-                if index >= 0:
-                    self.corredor_input.setCurrentIndex(index)
-
+            # Mostrar el corredor en el QLineEdit
+            corredor_numero = cliente.get("corredor")
+            if corredor_numero:
+                try:
+                    response = requests.get(
+                        f"http://localhost:8000/api/v1/corredores/{corredor_numero}",
+                        headers={"Authorization": f"Bearer {self.token}"}
+                    )
+                    response.raise_for_status()
+                    corredor = response.json()
+                    self.corredor_input.setText(f"{corredor['apellidos']}, {corredor.get('nombres', '')} ({corredor['numero']})")
+                except:
+                    self.corredor_input.setText(f"Corredor #{corredor_numero}")
+            
+            # Seleccionar tipo de documento
+            tipo_doc = cliente.get("tipo_documento", "DNI")
+            index = self.tipo_documento_input.findText(tipo_doc)
+            if index >= 0:
+                self.tipo_documento_input.setCurrentIndex(index)
+                
         except requests.RequestException as e:
-            QMessageBox.critical(self, "Error", f"Error al cargar datos del cliente: {str(e)}")
+            logger.error(f"Error al cargar datos del cliente: {str(e)}")
+            QMessageBox.critical(self, "Error", "No se pudieron cargar los datos del cliente")
             self.reject()
 
     def save_client(self):
         """Guarda los datos del cliente"""
-        # Convertir fecha a formato MySQL o null si está vacía
-        fecha_nac = self.fecha_nacimiento_input.date().toString("yyyy-MM-dd")
-        if fecha_nac == "2025-01-19":  # Si es la fecha actual, la consideramos vacía
-            fecha_nac = "0000-00-00"
-
-        # Datos en el formato que espera el backend
-        data = {
-            "nombres": self.nombres_input.text().strip(),
-            "apellidos": self.apellidos_input.text().strip(),
-            "tipo_documento": self.tipo_documento_input.currentText(),
-            "numero_documento": self.documento_input.text().strip(),
-            "fecha_nacimiento": fecha_nac,
-            "direccion": self.direccion_input.text().strip(),
-            "localidad": self.localidad_input.text().strip(),
-            "telefonos": self.telefonos_input.text().strip(),
-            "movil": self.movil_input.text().strip(),
-            "mail": self.mail_input.text().strip(),
-            "corredor": self.corredor_input.currentData(),  
-            "observaciones": self.observaciones_input.toPlainText().strip()
-        }
-
-        # Log de los datos que se enviarán
-        logger.debug(f"Datos a enviar al backend: {data}")
-
-        # Validaciones básicas - todos los campos requeridos según el error
-        campos_requeridos = [
-            "apellidos", "tipo_documento", "numero_documento", 
-            "fecha_nacimiento", "direccion", "telefonos", 
-            "movil", "mail"
-        ]
-        campos_vacios = [campo for campo in campos_requeridos if not data[campo]]
-        
-        if campos_vacios:
-            campos = ", ".join(campos_vacios)
-            QMessageBox.warning(self, "Error", f"Los siguientes campos son obligatorios: {campos}")
-            return
-
         try:
-            if self.client_id:  # Editar cliente existente
+            # Validar campos requeridos
+            if not all([
+                self.apellidos_input.text().strip(),
+                self.documento_input.text().strip(),
+                self.mail_input.text().strip(),
+                self.direccion_input.text().strip(),
+                self.localidad_input.text().strip()
+            ]):
+                QMessageBox.warning(self, "Error", "Por favor complete todos los campos requeridos (*)")
+                return
+
+            # Preparar datos
+            data = {
+                "nombres": self.nombres_input.text(),
+                "apellidos": self.apellidos_input.text(),
+                "tipo_documento": self.tipo_documento_input.currentText(),
+                "numero_documento": self.documento_input.text(),
+                "fecha_nacimiento": self.fecha_nacimiento_input.date().toString("yyyy-MM-dd"),
+                "direccion": self.direccion_input.text(),
+                "localidad": self.localidad_input.text(),
+                "telefonos": self.telefonos_input.text(),
+                "movil": self.movil_input.text(),
+                "mail": self.mail_input.text(),
+                "observaciones": self.observaciones_input.toPlainText()
+            }
+            
+            # Si es un nuevo cliente, agregar el corredor seleccionado
+            if not self.client_id:
+                corredor_id = self.corredor_input.currentData()
+                if not corredor_id:
+                    QMessageBox.warning(self, "Error", "Por favor seleccione un corredor")
+                    return
+                data["corredor"] = corredor_id
+            
+            logger.debug(f"Datos a enviar al backend: {data}")
+            
+            # Enviar datos al backend
+            if self.client_id:
                 response = requests.put(
                     f"http://localhost:8000/api/v1/clientes/{self.client_id}",
                     headers={"Authorization": f"Bearer {self.token}"},
                     json=data
                 )
-            else:  # Crear nuevo cliente
-                logger.debug("Enviando solicitud POST para crear nuevo cliente")
+            else:
                 response = requests.post(
                     "http://localhost:8000/api/v1/clientes/",
                     headers={"Authorization": f"Bearer {self.token}"},
                     json=data
                 )
             
-            if response.status_code >= 400:
-                logger.error(f"Error del servidor: {response.status_code}")
-                logger.error(f"Respuesta del servidor: {response.text}")
-                
             response.raise_for_status()
-            QMessageBox.information(self, "Éxito", "Cliente guardado exitosamente")
             self.accept()
-
+            
         except requests.RequestException as e:
             error_msg = f"Error al guardar cliente: {str(e)}"
-            if hasattr(e.response, 'text'):
-                error_msg += f"\nDetalles: {e.response.text}"
             logger.error(error_msg)
             QMessageBox.critical(self, "Error", error_msg)

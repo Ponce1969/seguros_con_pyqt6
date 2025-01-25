@@ -19,22 +19,31 @@ class MovimientosTab(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(10, 10, 10, 10)
         
-        # Título
-        title = QWidget()
-        title_layout = QHBoxLayout(title)
-        title_layout.setContentsMargins(0, 0, 0, 10)
-        
         # Barra de herramientas
         toolbar = QHBoxLayout()
         toolbar.setSpacing(10)
         
+        # Botones principales
         add_button = QPushButton("Agregar Movimiento")
-        add_button.setFixedWidth(150)
+        add_button.setFixedWidth(140)
         add_button.clicked.connect(self.show_add_movement_dialog)
         toolbar.addWidget(add_button)
         
+        # Botones de acción (desactivados por defecto)
+        self.edit_button = QPushButton("Editar")
+        self.edit_button.setFixedWidth(80)
+        self.edit_button.setEnabled(False)
+        self.edit_button.clicked.connect(self.edit_selected_movement)
+        toolbar.addWidget(self.edit_button)
+        
+        self.delete_button = QPushButton("Eliminar")
+        self.delete_button.setFixedWidth(80)
+        self.delete_button.setEnabled(False)
+        self.delete_button.clicked.connect(self.delete_selected_movement)
+        toolbar.addWidget(self.delete_button)
+        
         refresh_button = QPushButton("Actualizar Lista")
-        refresh_button.setFixedWidth(150)
+        refresh_button.setFixedWidth(120)
         refresh_button.clicked.connect(self.load_movements)
         toolbar.addWidget(refresh_button)
         
@@ -51,18 +60,18 @@ class MovimientosTab(QWidget):
     def setup_table(self):
         """Configura la tabla de movimientos"""
         self.movements_table = QTableWidget()
-        self.movements_table.setColumnCount(14)
+        self.movements_table.setColumnCount(13)
         self.movements_table.setHorizontalHeaderLabels([
             "ID", "Fecha Mov.", "Corredor", "Cliente",
             "Tipo Seguro", "Carpeta", "Póliza", "Endoso",
             "Vto. Desde", "Vto. Hasta", "Moneda", "Premio",
-            "Cuotas", "Acciones"
+            "Cuotas"
         ])
         
         # Configurar la tabla
         header = self.movements_table.horizontalHeader()
         header.setStretchLastSection(True)
-        for i in range(13):  # Todas las columnas excepto Acciones
+        for i in range(13):
             header.setSectionResizeMode(i, header.ResizeMode.ResizeToContents)
         
         self.movements_table.verticalHeader().setVisible(False)
@@ -70,7 +79,10 @@ class MovimientosTab(QWidget):
         self.movements_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.movements_table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
         self.movements_table.setMinimumHeight(300)
-
+        
+        # Conectar evento de selección
+        self.movements_table.itemSelectionChanged.connect(self.on_selection_changed)
+        
     def load_movements(self):
         """Carga los movimientos desde la API"""
         try:
@@ -93,7 +105,7 @@ class MovimientosTab(QWidget):
                 empty_message = QTableWidgetItem("No hay movimientos registrados")
                 empty_message.setFlags(Qt.ItemFlag.ItemIsEnabled)
                 empty_message.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                self.movements_table.setSpan(0, 0, 1, 14)
+                self.movements_table.setSpan(0, 0, 1, 13)
                 self.movements_table.setItem(0, 0, empty_message)
                 return
             
@@ -153,27 +165,35 @@ class MovimientosTab(QWidget):
             elif col in [11]:  # Premio alineado a la derecha
                 item.setTextAlignment(Qt.AlignmentFlag.AlignRight)
             self.movements_table.setItem(row, col, item)
+    
+    def on_selection_changed(self):
+        """Maneja el cambio de selección en la tabla"""
+        selected_rows = self.movements_table.selectedItems()
+        has_selection = len(selected_rows) > 0
         
-        # Botones de acción
-        action_widget = QWidget()
-        action_layout = QHBoxLayout(action_widget)
-        action_layout.setContentsMargins(5, 0, 5, 0)
-        action_layout.setSpacing(5)
-        
-        edit_button = QPushButton("Editar")
-        edit_button.setFixedWidth(60)
-        edit_button.setStyleSheet("background-color: #4CAF50; color: white;")
-        movement_id = movimiento["Id_movimiento"]
-        edit_button.clicked.connect(lambda checked, id=movement_id: self.show_edit_movement_dialog(id))
-        action_layout.addWidget(edit_button)
-        
-        delete_button = QPushButton("Eliminar")
-        delete_button.setFixedWidth(60)
-        delete_button.setStyleSheet("background-color: #f44336; color: white;")
-        delete_button.clicked.connect(lambda checked, id=movement_id: self.delete_movement(id))
-        action_layout.addWidget(delete_button)
-        
-        self.movements_table.setCellWidget(row, 13, action_widget)
+        # Activar/desactivar botones según la selección
+        self.edit_button.setEnabled(has_selection)
+        self.delete_button.setEnabled(has_selection)
+    
+    def get_selected_movement_id(self):
+        """Obtiene el ID del movimiento seleccionado"""
+        selected_rows = self.movements_table.selectedItems()
+        if not selected_rows:
+            return None
+        # El ID está en la primera columna
+        return selected_rows[0].text()
+    
+    def edit_selected_movement(self):
+        """Edita el movimiento seleccionado"""
+        movement_id = self.get_selected_movement_id()
+        if movement_id:
+            self.show_edit_movement_dialog(movement_id)
+    
+    def delete_selected_movement(self):
+        """Elimina el movimiento seleccionado"""
+        movement_id = self.get_selected_movement_id()
+        if movement_id:
+            self.delete_movement(movement_id)
 
     def show_add_movement_dialog(self):
         """Muestra el diálogo para agregar un nuevo movimiento"""
