@@ -240,13 +240,13 @@ class MovimientoDialog(QDialog):
                     mail = cliente.get('mail', '')
                     
                     # Crear un texto descriptivo con la información del cliente
-                    display_text = f"{apellidos}, {nombres}"
+                    display_text = f"[{cliente.get('numero_cliente', '')}] {apellidos}, {nombres}"
                     if nro_documento:
                         display_text += f" - {tipo_documento}: {nro_documento}"
                     if mail:
                         display_text += f" ({mail})"
                         
-                    self.cliente_input.addItem(display_text, cliente.get('id'))
+                    self.cliente_input.addItem(display_text, cliente.get('numero_cliente'))
                     
                 except Exception as e:
                     logger.error(f"Error al procesar cliente: {cliente}")
@@ -291,10 +291,24 @@ class MovimientoDialog(QDialog):
             response.raise_for_status()
             movimiento = response.json()
 
-            # Seleccionar cliente
+            # Seleccionar cliente usando numero_cliente
             index = self.cliente_input.findData(movimiento["Cliente"])
             if index >= 0:
                 self.cliente_input.setCurrentIndex(index)
+            else:
+                # Si no se encuentra el cliente, cargar sus datos
+                try:
+                    cliente_response = requests.get(
+                        f"http://localhost:8000/api/v1/clientes/{movimiento['Cliente']}",
+                        headers={"Authorization": f"Bearer {self.token}"}
+                    )
+                    cliente_response.raise_for_status()
+                    cliente = cliente_response.json()
+                    display_text = f"[{cliente.get('numero_cliente', '')}] {cliente.get('apellidos', '')}, {cliente.get('nombres', '')}"
+                    self.cliente_input.addItem(display_text, cliente.get('numero_cliente'))
+                    self.cliente_input.setCurrentIndex(self.cliente_input.count() - 1)
+                except:
+                    logger.error(f"No se pudo cargar el cliente {movimiento['Cliente']}")
 
             # Seleccionar corredor
             index = self.corredor_input.findData(movimiento["Corredor"])
@@ -322,8 +336,8 @@ class MovimientoDialog(QDialog):
     def save_movement(self):
         """Guarda los datos del movimiento"""
         # Validar cliente seleccionado
-        cliente_id = self.cliente_input.currentData()
-        if not cliente_id:
+        numero_cliente = self.cliente_input.currentData()
+        if not numero_cliente:
             QMessageBox.warning(self, "Error", "Debe seleccionar un cliente")
             return
 
@@ -336,7 +350,7 @@ class MovimientoDialog(QDialog):
         data = {
             "FechaMov": self.fecha_mov_input.date().toString("yyyy-MM-dd"),
             "Corredor": corredor_id,
-            "Cliente": cliente_id,
+            "Cliente": numero_cliente,
             "Tipo_seguro": self.tipo_seguro_input.value(),
             "Carpeta": self.carpeta_input.text().strip(),
             "Poliza": self.poliza_input.text().strip(),

@@ -65,7 +65,32 @@ def read_clientes(
         logger.debug(f"Obteniendo clientes. Usuario: {current_user.email} (ID: {current_user.id})")
         clientes = db.query(Cliente).offset(skip).limit(limit).all()
         logger.debug(f"Clientes encontrados: {len(clientes)}")
-        return clientes
+        
+        # Transformar los clientes al formato del schema
+        return [
+            schemas.Cliente(
+                id=cliente.id,
+                numero_cliente=cliente.numero_cliente,
+                nombres=cliente.nombres,
+                apellidos=cliente.apellidos,
+                tipo_documento=cliente.tipo_documento,
+                numero_documento=cliente.numero_documento,
+                fecha_nacimiento=cliente.fecha_nacimiento,
+                direccion=cliente.direccion,
+                localidad=cliente.localidad,
+                telefonos=cliente.telefonos,
+                movil=cliente.movil,
+                mail=cliente.mail,
+                corredor=cliente.corredor,
+                observaciones=cliente.observaciones,
+                creado_por_id=cliente.creado_por_id,
+                modificado_por_id=cliente.modificado_por_id,
+                fecha_creacion=cliente.fecha_creacion,
+                fecha_modificacion=cliente.fecha_modificacion,
+                movimientos_vigencias=[]  # Lista vacía por defecto
+            )
+            for cliente in clientes
+        ]
     except Exception as e:
         logger.error(f"Error al obtener clientes: {str(e)}")
         logger.error(traceback.format_exc())

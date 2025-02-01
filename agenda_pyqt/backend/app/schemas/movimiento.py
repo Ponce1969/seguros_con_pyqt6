@@ -48,3 +48,4 @@ class MovimientoVigenciaUpdate(BaseModel):
 class MovimientoVigencia(MovimientoVigenciaBase):
     """Modelo completo de movimiento de vigencia."""
     Id_movimiento: int = Field(description="ID del movimiento")
+    Cliente_nombre: str = Field(description="Nombre completo del cliente")

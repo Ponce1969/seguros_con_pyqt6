@@ -13,7 +13,7 @@ class MovimientoVigencia(Base):
     id = Column(Integer, primary_key=True, index=True)
     cliente_id = Column(UUID(as_uuid=True), ForeignKey("clientes.id"), nullable=False)
     corredor_id = Column(Integer, ForeignKey("corredores.numero"))
-    tipo_seguro_id = Column(Integer, ForeignKey("tipos_seguros.id"), nullable=False)
+    tipo_seguro_id = Column(Integer, ForeignKey("tipos_de_seguros.Id_tipo"), nullable=False)
     carpeta = Column(String(100))
     numero_poliza = Column(String(100), nullable=False)
     endoso = Column(String(100))

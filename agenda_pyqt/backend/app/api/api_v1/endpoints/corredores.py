@@ -38,7 +38,22 @@ def read_corredores(
 ):
     """Obtener lista de corredores"""
     corredores = db.query(models.Corredor).offset(skip).limit(limit).all()
-    return corredores
+    return [
+        schemas.Corredor(
+            numero=corredor.numero,
+            nombres=corredor.nombres,
+            apellidos=corredor.apellidos,
+            documento=corredor.documento,
+            direccion=corredor.direccion,
+            localidad=corredor.localidad,
+            telefonos=corredor.telefonos,
+            movil=corredor.movil,
+            mail=corredor.mail,
+            observaciones=corredor.observaciones,
+            movimientos=[]  # Lista vacía por defecto
+        )
+        for corredor in corredores
+    ]
 
 @router.get("/{numero}", response_model=schemas.Corredor)
 def read_corredor(

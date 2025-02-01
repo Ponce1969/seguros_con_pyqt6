@@ -60,16 +60,16 @@ class CorredoresTab(QWidget):
     def setup_table(self):
         """Configura la tabla de corredores"""
         self.corredores_table = QTableWidget()
-        self.corredores_table.setColumnCount(10)  # Eliminada la columna de acciones
+        self.corredores_table.setColumnCount(9)  # Reducido en 1 por eliminar columna ID
         self.corredores_table.setHorizontalHeaderLabels([
-            "ID", "Número", "Nombres", "Apellidos", "Documento",
+            "N° Corredor", "Nombres", "Apellidos", "Documento",
             "Teléfonos", "Móvil", "Email", "Dirección", "Localidad"
         ])
         
         # Configurar la tabla
         header = self.corredores_table.horizontalHeader()
         header.setStretchLastSection(True)
-        for i in range(10):
+        for i in range(9):
             header.setSectionResizeMode(i, header.ResizeMode.ResizeToContents)
         
         self.corredores_table.verticalHeader().setVisible(False)
@@ -107,7 +107,7 @@ class CorredoresTab(QWidget):
                 empty_message = QTableWidgetItem("No hay corredores registrados")
                 empty_message.setFlags(Qt.ItemFlag.ItemIsEnabled)
                 empty_message.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                self.corredores_table.setSpan(0, 0, 1, 10)
+                self.corredores_table.setSpan(0, 0, 1, 9)
                 self.corredores_table.setItem(0, 0, empty_message)
                 return
             
@@ -129,10 +129,9 @@ class CorredoresTab(QWidget):
             row = self.corredores_table.rowCount()
             self.corredores_table.insertRow(row)
             
-            # Añadir datos del corredor - Usar 'numero' como ID
+            # Añadir datos del corredor
             items = [
-                QTableWidgetItem(str(corredor.get("numero", ""))),  # Usamos 'numero' como ID
-                QTableWidgetItem(str(corredor.get("numero", ""))),  # Número visible
+                QTableWidgetItem(str(corredor.get("numero", ""))),  # Número de corredor
                 QTableWidgetItem(corredor.get("nombres", "")),
                 QTableWidgetItem(corredor["apellidos"]),
                 QTableWidgetItem(corredor.get("documento", "")),
@@ -143,7 +142,7 @@ class CorredoresTab(QWidget):
                 QTableWidgetItem(corredor.get("localidad", ""))
             ]
             
-            logger.debug(f"Agregando corredor a la tabla - ID/Número: {corredor.get('numero', '')}")
+            logger.debug(f"Agregando corredor a la tabla - Número: {corredor.get('numero', '')}")
             
             # Configurar items
             for col, item in enumerate(items):
@@ -152,7 +151,7 @@ class CorredoresTab(QWidget):
                     continue
                     
                 item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
-                if col in [0, 1]:  # ID y Número centrados
+                if col in [0]:  # Número centrado
                     item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.corredores_table.setItem(row, col, item)
                 
@@ -160,35 +159,12 @@ class CorredoresTab(QWidget):
             logger.error(f"Error al agregar corredor a la tabla: {str(e)}")
 
     def get_selected_corredor_id(self):
-        """Obtiene el ID del corredor seleccionado"""
-        try:
-            current_row = self.corredores_table.currentRow()
-            logger.debug(f"Fila seleccionada: {current_row}")
-            
-            if current_row == -1:
-                logger.debug("No hay fila seleccionada")
-                return None
-                
-            # El ID está en la primera columna
-            id_item = self.corredores_table.item(current_row, 0)
-            if id_item is None:
-                logger.error(f"No se pudo obtener el item de la columna ID en la fila {current_row}")
-                return None
-                
-            corredor_id = id_item.text()
-            logger.debug(f"ID del corredor seleccionado: '{corredor_id}'")
-            
-            # Verificar si el ID es válido
-            if not corredor_id.strip():
-                logger.error("ID del corredor está vacío")
-                return None
-                
-            return corredor_id
-            
-        except Exception as e:
-            logger.error(f"Error al obtener ID del corredor: {str(e)}")
+        """Obtiene el número del corredor seleccionado"""
+        selected_items = self.corredores_table.selectedItems()
+        if not selected_items:
             return None
-    
+        return self.corredores_table.item(selected_items[0].row(), 0).text()
+
     def on_selection_changed(self, selected, deselected):
         """Maneja el cambio de selección en la tabla"""
         try:
@@ -226,78 +202,44 @@ class CorredoresTab(QWidget):
     
     def delete_selected_corredor(self):
         """Elimina el corredor seleccionado"""
-        try:
-            logger.debug("Intentando eliminar corredor...")
-            corredor_id = self.get_selected_corredor_id()
-            
-            if not corredor_id:
-                logger.warning("No se pudo obtener el ID del corredor")
-                QMessageBox.warning(self, "Advertencia", "Por favor, seleccione un corredor para eliminar")
-                return
-                
-            logger.debug(f"Procediendo a eliminar corredor ID: {corredor_id}")
-            self.delete_corredor(corredor_id)
-            
-        except Exception as e:
-            error_msg = f"Error al eliminar corredor: {str(e)}"
-            logger.error(error_msg)
-            QMessageBox.critical(self, "Error", error_msg)
-    
-    def delete_corredor(self, corredor_id):
+        numero_corredor = self.get_selected_corredor_id()
+        if not numero_corredor:
+            return
+        
+        reply = QMessageBox.question(
+            self,
+            "Confirmar Eliminación",
+            f"¿Está seguro que desea eliminar el corredor N° {numero_corredor}?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            self.delete_corredor(numero_corredor)
+
+    def delete_corredor(self, numero_corredor):
         """Elimina un corredor"""
         try:
-            # Obtener el número del corredor para el mensaje
-            row = None
-            for i in range(self.corredores_table.rowCount()):
-                if self.corredores_table.item(i, 0).text() == corredor_id:
-                    row = i
-                    break
-            
-            logger.debug(f"Fila encontrada para corredor ID {corredor_id}: {row}")
-            
-            if row is not None:
-                corredor_numero = self.corredores_table.item(row, 1).text()
-                mensaje = f"¿Está seguro de que desea eliminar el corredor número {corredor_numero}?"
-            else:
-                mensaje = "¿Está seguro de que desea eliminar este corredor?"
-            
-            reply = QMessageBox.question(
-                self,
-                "Confirmar eliminación",
-                mensaje,
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                QMessageBox.StandardButton.No
+            response = requests.delete(
+                f"http://localhost:8000/api/v1/corredores/{numero_corredor}",
+                headers={"Authorization": f"Bearer {self.token}"}
             )
-            
-            if reply == QMessageBox.StandardButton.Yes:
-                logger.debug(f"Enviando solicitud DELETE para corredor ID: {corredor_id}")
-                response = requests.delete(
-                    f"http://localhost:8000/api/v1/corredores/{corredor_id}",
-                    headers={"Authorization": f"Bearer {self.token}"}
-                )
-                response.raise_for_status()
-                
-                logger.debug("Corredor eliminado exitosamente")
-                self.load_corredores()
-                QMessageBox.information(self, "Éxito", "Corredor eliminado exitosamente")
-                
+            response.raise_for_status()
+            self.load_corredores()
+            QMessageBox.information(self, "Éxito", "Corredor eliminado exitosamente")
         except requests.RequestException as e:
             error_msg = f"Error al eliminar corredor: {str(e)}"
             logger.error(error_msg)
             QMessageBox.critical(self, "Error", error_msg)
-        except Exception as e:
-            error_msg = f"Error inesperado: {str(e)}"
-            logger.error(error_msg)
-            QMessageBox.critical(self, "Error", error_msg)
-    
+
     def show_add_corredor_dialog(self):
         """Muestra el diálogo para agregar un nuevo corredor"""
         dialog = CorredorDialog(parent=self, token=self.token)
         if dialog.exec() == dialog.DialogCode.Accepted:
             self.load_corredores()
 
-    def show_edit_corredor_dialog(self, corredor_id):
+    def show_edit_corredor_dialog(self, numero_corredor):
         """Muestra el diálogo para editar un corredor existente"""
-        dialog = CorredorDialog(parent=self, corredor_id=corredor_id, token=self.token)
-        if dialog.exec() == dialog.DialogCode.Accepted:
-            self.load_corredores()
+        dialog = CorredorDialog(self, numero_corredor, self.token)
+        if dialog.exec():
+            self.load_corredores()  # Recargar la lista de corredores

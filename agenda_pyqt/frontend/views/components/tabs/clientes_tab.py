@@ -62,7 +62,7 @@ class ClientesTab(QWidget):
         self.clients_table = QTableWidget()
         self.clients_table.setColumnCount(11)  # Eliminada la columna de acciones
         self.clients_table.setHorizontalHeaderLabels([
-            "ID", "Nombres", "Apellidos", "Tipo Doc.", "Documento",
+            "N° Cliente", "Nombres", "Apellidos", "Tipo Doc.", "Documento",
             "Fecha Nac.", "Teléfonos", "Móvil", "Email", "Dirección",
             "Localidad"
         ])
@@ -133,7 +133,7 @@ class ClientesTab(QWidget):
         
         # Añadir datos del cliente
         items = [
-            QTableWidgetItem(str(cliente.get("id", ""))),
+            QTableWidgetItem(str(cliente.get("numero_cliente", ""))),
             QTableWidgetItem(cliente.get("nombres", "")),
             QTableWidgetItem(cliente["apellidos"]),
             QTableWidgetItem(cliente.get("tipo_documento", "DNI")),
@@ -164,54 +164,61 @@ class ClientesTab(QWidget):
     
     def get_selected_client_id(self):
         """Obtiene el ID del cliente seleccionado"""
-        selected_rows = self.clients_table.selectedItems()
-        if not selected_rows:
+        selected_items = self.clients_table.selectedItems()
+        if not selected_items:
             return None
-        # El ID está en la primera columna
-        return selected_rows[0].text()
+        return self.clients_table.item(selected_items[0].row(), 0).text()
     
     def edit_selected_client(self):
         """Edita el cliente seleccionado"""
-        client_id = self.get_selected_client_id()
-        if client_id:
-            self.show_edit_client_dialog(client_id)
-    
+        numero_cliente = self.get_selected_client_id()
+        if not numero_cliente:
+            return
+        self.show_edit_client_dialog(numero_cliente)
+
     def delete_selected_client(self):
         """Elimina el cliente seleccionado"""
-        client_id = self.get_selected_client_id()
-        if client_id:
-            self.delete_client(client_id)
-    
-    def show_add_client_dialog(self):
-        """Muestra el diálogo para agregar un nuevo cliente"""
-        dialog = ClienteDialog(parent=self, token=self.token)
-        if dialog.exec() == dialog.DialogCode.Accepted:
-            self.load_clients()
-
-    def show_edit_client_dialog(self, client_id):
-        """Muestra el diálogo para editar un cliente existente"""
-        dialog = ClienteDialog(parent=self, client_id=client_id, token=self.token)
-        if dialog.exec() == dialog.DialogCode.Accepted:
-            self.load_clients()
-
-    def delete_client(self, client_id):
-        """Elimina un cliente"""
+        numero_cliente = self.get_selected_client_id()
+        if not numero_cliente:
+            return
+        
         reply = QMessageBox.question(
             self,
-            "Confirmar eliminación",
-            "¿Está seguro de que desea eliminar este cliente?",
+            "Confirmar Eliminación",
+            f"¿Está seguro que desea eliminar el cliente N° {numero_cliente}?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No
         )
         
         if reply == QMessageBox.StandardButton.Yes:
-            try:
-                response = requests.delete(
-                    f"http://localhost:8000/api/v1/clientes/{client_id}",
-                    headers={"Authorization": f"Bearer {self.token}"}
-                )
-                response.raise_for_status()
-                self.load_clients()
-                QMessageBox.information(self, "Éxito", "Cliente eliminado exitosamente")
-            except requests.RequestException as e:
-                QMessageBox.critical(self, "Error", f"Error al eliminar cliente: {str(e)}")
+            self.delete_client(numero_cliente)
+
+    def show_edit_client_dialog(self, numero_cliente):
+        """Muestra el diálogo para editar un cliente existente"""
+        dialog = ClienteDialog(self, numero_cliente, self.token)
+        if dialog.exec():
+            self.load_clients()  # Recargar la lista de clientes
+
+    def delete_client(self, numero_cliente):
+        """Elimina un cliente"""
+        try:
+            response = requests.delete(
+                f"http://localhost:8000/api/v1/clientes/{numero_cliente}",
+                headers={"Authorization": f"Bearer {self.token}"}
+            )
+            response.raise_for_status()
+            
+            # Actualizar la tabla
+            self.load_clients()
+            QMessageBox.information(self, "Éxito", "Cliente eliminado exitosamente")
+            
+        except requests.RequestException as e:
+            error_msg = f"Error al eliminar cliente: {str(e)}"
+            logger.error(error_msg)
+            QMessageBox.critical(self, "Error", error_msg)
+
+    def show_add_client_dialog(self):
+        """Muestra el diálogo para agregar un nuevo cliente"""
+        dialog = ClienteDialog(parent=self, token=self.token)
+        if dialog.exec() == dialog.DialogCode.Accepted:
+            self.load_clients()

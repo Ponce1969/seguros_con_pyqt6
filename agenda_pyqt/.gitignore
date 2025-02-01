@@ -55,6 +55,9 @@ backend/check_db.py
 # Código legacy
 frontend/legacy/
 
+# Scripts de inicialización y utilidades
+/scripts/
+
 # Sistema operativo
 .DS_Store
 Thumbs.db

@@ -51,5 +51,7 @@ class CorredorUpdate(BaseModel):
 
 class Corredor(CorredorBase):
     """Modelo completo de corredor."""
-    numero: int = Field(description="Número de corredor")
-    movimientos: List[MovimientoVigencia] = Field(default_factory=list, description="Movimientos de vigencia asociados")
+    numero: int = Field(gt=0, description="Número de corredor")
+    movimientos: List[MovimientoVigencia] = []
+
+    model_config = ConfigDict(from_attributes=True)

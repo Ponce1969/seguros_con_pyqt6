@@ -27,6 +27,10 @@ class ClienteDialog(QDialog):
         layout.setSpacing(10)
 
         # Campos de entrada
+        self.numero_cliente_input = QLineEdit()
+        self.numero_cliente_input.setReadOnly(True)
+        self.numero_cliente_input.setStyleSheet("QLineEdit { background-color: #f0f0f0; }")  # Fondo gris para indicar que no es editable
+        
         self.nombres_input = QLineEdit()
         self.apellidos_input = QLineEdit()
         self.tipo_documento_input = QComboBox()
@@ -53,6 +57,7 @@ class ClienteDialog(QDialog):
         self.observaciones_input.setMaximumHeight(100)
 
         # Agregar campos al layout
+        layout.addRow("N° Cliente:", self.numero_cliente_input)
         layout.addRow("Nombres:", self.nombres_input)
         layout.addRow("Apellidos *:", self.apellidos_input)
         layout.addRow("Tipo Documento *:", self.tipo_documento_input)
@@ -110,6 +115,7 @@ class ClienteDialog(QDialog):
             response.raise_for_status()
             cliente = response.json()
 
+            self.numero_cliente_input.setText(str(cliente.get("numero_cliente", "")))
             self.nombres_input.setText(cliente.get("nombres", ""))
             self.apellidos_input.setText(cliente["apellidos"])
             self.documento_input.setText(cliente.get("numero_documento", ""))
